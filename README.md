@@ -61,6 +61,7 @@ Todos los servicios deben aparecer como `healthy` o `running`.
 Una vez que todo esté corriendo, accede desde tu navegador:
 
 Panel Admin / Gerente:  http://localhost:3000 (Gestión interna del sistema)\
+**Credencial del Gerente:** gerente@restohub.com / **contraseña:** password123\
 App de Clientes: http://localhost:4777 (Vista de menú y lealtad)\
 API Gateway (GraphQL) http://localhost:4000 (Sitio de Pruebas en Apollo Server)\
 RabbitMQ Management: http://localhost:15672 (Panel de mensajería)\
