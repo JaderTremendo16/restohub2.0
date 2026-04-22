@@ -1,0 +1,169 @@
+import { useState } from "react";
+import { useQuery } from "@apollo/client/react";
+import { GET_COUNTRIES, GET_LOCATIONS } from "../../graphql/location";
+import { useAuth } from "../../context/AuthContext";
+
+const inputStyle = {
+  width: "100%",
+  padding: "0.625rem 0.875rem",
+  border: "1px solid #e5e7eb",
+  borderRadius: "0.5rem",
+  fontSize: "0.875rem",
+  color: "#1a1a2e",
+  outline: "none",
+  backgroundColor: "white",
+  boxSizing: "border-box",
+};
+
+const labelStyle = {
+  display: "block",
+  fontSize: "0.8rem",
+  fontWeight: "600",
+  color: "#374151",
+  marginBottom: "0.4rem",
+};
+
+const CreateEmployee = ({ createEmployee, creating }) => {
+  const [name, setName] = useState("");
+  const { user } = useAuth(); // Obtenemos el usuario para saber su sede/país
+
+  const { data: locationsData } = useQuery(GET_LOCATIONS);
+  const { data: countriesData } = useQuery(GET_COUNTRIES);
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+
+  const sedeActual = locationsData?.locations?.find(
+    (l) => String(l.id) === String(user?.locationId),
+  );
+
+  const paisActual = countriesData?.countries?.find(
+    (c) => String(c.id) === String(sedeActual?.countryId),
+  );
+
+  const handleSubmit = async () => {
+    if (!name.trim() || !phone.trim() || !email.trim()) {
+      alert("Todos los campos son obligatorios");
+      return;
+    }
+
+    // Verificamos que tengamos el ID del país antes de enviar
+    if (!paisActual?.id) {
+      alert("Error: No se pudo determinar el país de la sede.");
+      return;
+    }
+
+    try {
+      // Usamos paisActual.id para la mutación
+      await createEmployee(
+        name,
+        paisActual.id,
+        Number(user.locationId),
+        phone,
+        email,
+      );
+      setName("");
+      setPhone("");
+      setEmail("");
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  return (
+    <div
+      style={{
+        backgroundColor: "white",
+        borderRadius: "1rem",
+        padding: "1.5rem",
+        boxShadow: "0 1px 3px rgba(0,0,0,0.08)",
+        marginBottom: "1.5rem",
+      }}
+    >
+      <h3
+        style={{
+          margin: "0 0 1.25rem 0",
+          fontSize: "1rem",
+          fontWeight: "700",
+          color: "#1a1a2e",
+        }}
+      >
+        Crear empleado
+      </h3>
+
+      <div
+        style={{
+          display: "flex",
+          gap: "1rem",
+          flexWrap: "wrap",
+          alignItems: "flex-end",
+        }}
+      >
+        <div style={{ flex: 2, minWidth: "160px" }}>
+          <label style={labelStyle}>Nombre completo *</label>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej: Juan Pérez"
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ flex: 1, minWidth: "140px" }}>
+          <label style={labelStyle}>Teléfono</label>
+          <input
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Ej: 123456789"
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ flex: 1, minWidth: "140px" }}>
+          <label style={labelStyle}>Email</label>
+          <input
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder=" "
+            style={inputStyle}
+          />
+        </div>
+
+        {/* País fijo — no editable */}
+        <div style={{ flex: 1, minWidth: "140px" }}>
+          <label style={labelStyle}>País</label>
+          <div
+            style={{
+              padding: "0.625rem 0.875rem",
+              border: "1px solid #e5e7eb",
+              borderRadius: "0.5rem",
+              fontSize: "0.875rem",
+              color: "#6b7280",
+              backgroundColor: "#f9fafb",
+            }}
+          >
+            🌍 {paisActual?.name || "No asignado"}
+          </div>
+        </div>
+
+        <button
+          onClick={handleSubmit}
+          disabled={creating}
+          style={{
+            backgroundColor: creating ? "#f97316" : "#ea580c",
+            color: "white",
+            border: "none",
+            padding: "0.625rem 1.25rem",
+            borderRadius: "0.625rem",
+            fontSize: "0.875rem",
+            fontWeight: "600",
+            cursor: creating ? "not-allowed" : "pointer",
+            flexShrink: 0,
+          }}
+        >
+          {creating ? "Creando..." : "Crear empleado"}
+        </button>
+      </div>
+    </div>
+  );
+};
+export default CreateEmployee;

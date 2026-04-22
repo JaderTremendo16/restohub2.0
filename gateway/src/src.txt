@@ -1,0 +1,12 @@
+Bueno, para hacer la conexiones con un microservicio como el de staff que está hecho en python y usa fastAPI, que este a diferencia de los otros microservicios
+usa REST, no GraphQL como los otros,entonces para ello Apollo GraphQL nos ofrece una solucion para esto, que es usar RESTDataSource
+Basicamente es una clase por la biblioteca Apollo GraphQL diseñada para facilitar la obtencion de datos desde API REST de un servidor GraphQL
+En otras palabras, nos permite "envolver" las rutas de Python (REST) y exponerlas como si fueran GraphQL. Por ende, se debe hacer de la siguiente manera:
+
+1. Se crea un dockerfile dentro de la carpeta backend del servicio staff para que así se pueda integrar en el docker-compose.
+2. Lo tipico de integrarlo en docker-compose.yml y definir sus variables de entorno.
+3. Se crea una carpeta dataSources dentro de src en gateway y dentro de ella un archivo StaffAPI.js que herede de RESTDataSource.
+4. Se crea una carpeta llamada graphql dentro de src en gateway y dentro de ella un archivo schema.js y resolvers.js.
+Schema.js: para definir el esquema en el gateway, es decir, las consultas que se van a hacer.
+resolver.js: para resolver las consultas, es decir, para obtener los datos de las consultas.
+5. 

@@ -1,0 +1,15 @@
+Index.js
+
+Conceptos claves:
+
+IntrospectAndCompose: Es una clase que se utiliza para el schema de Gateway, 
+Introspect: Es una funcion que se utiliza para obtener el schema de un servicio, por ejemplo, el schema de ingredientes.
+Cuando el Gateway arranca, visita cada subgrafo en su URL y le pregunta "¿qué tipos y queries tienes?" eso es la introspección.
+
+Compose: Es una funcion que se utiliza para componer los schemas de los servicios, es decir, para unirlos en un solo schema.
+Con todas las respuestas construye un schema unificado en memoria. Si un subgrafo no responde, el Gateway falla al arrancar.
+Esto tiene una implicación importante: todos los subgrafos deben estar corriendo antes de que el Gateway arranque. Por eso en el docker-compose.yml el Gateway tiene depends_on apuntando a todos los servicios.
+
+Las URLs usan nombres de contenedor
+http://ingredients-service:4001/graphql funciona porque dentro de la red Docker, ingredients-service resuelve al contenedor correcto. 
+Desde tu máquina esa URL no funcionaría, fuera de Docker tendrías que usar localhost:4001.

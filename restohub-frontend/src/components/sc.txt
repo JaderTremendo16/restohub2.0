@@ -1,0 +1,4 @@
+¿Qué es una prop?
+Una prop es como un parámetro de una función, pero para componentes React. Cuando usas <StatCard title="Stock crítico" value={5} />, le estás pasando información al componente. Adentro del componente, esa información llega como { title, value }.
+color = "#ea580c" y loading = false son valores por defecto — si no pasas esa prop, el componente usa ese valor automáticamente.
+${color}18 — concatenamos el color con 18 al final. En colores hexadecimales, los últimos dos caracteres son la opacidad. 18 en hexadecimal equivale a aproximadamente 10% de opacidad, dando un fondo muy sutil del color del ícono.

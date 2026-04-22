@@ -1,0 +1,34 @@
+Conceptos claves:
+
+expiringBatches: usa knex.raw con INTERVAL de PostgreSQL para calcular la ventana de vencimiento directamente en la BD, sin traer todos los lotes a Node.
+
+upsertStock: implementado manualmente (busca primero, luego insert o update) ya que el schema define upsertStock como una sola mutación pero knex no tiene upsert nativo para todos los casos.
+
+adjustStock: aplica el delta con database.raw("total_quantity + ?") para evitar race conditions, y además inserta automáticamente un registro en inventory_logs para trazabilidad completa.
+
+updateBatch: marca el lote como AGOTADO automáticamente si current_quantity llega a 0, coherente con el enum BatchStatus del schema.
+
+deleteLowStockConfig: usa .returning("*") para devolver la fila eliminada, como exige el tipo de retorno LowStockConfig! en el schema.
+
+adjustStock hace dos cosas a la vez
+Es el resolver más importante del servicio. 
+En una sola operación actualiza el saldo en stocks y registra el movimiento en inventory_logs.
+ Esto garantiza que el historial siempre esté sincronizado con el saldom nunca puede haber un ajuste sin su log correspondiente porque ambas operaciones ocurren en la misma función.
+Lo ideal sería envolverlas en una transacción de base de datos para que si una falla la otra también se revierta. Por ahora funciona, pero es algo a mejorar más adelante.
+
+
+updateSupplyOrderStatus asigna received_date automáticamente
+if (status === 'RECIBIDO') {
+  updateData.received_date = new Date().toISOString().split('T')[0]
+}
+Cuando el pedido se marca como recibido, la fecha de recepción se registra automáticamente con la fecha actual. El cliente no necesita mandarla 
+el servidor sabe que si el status cambia a RECIBIDO es porque está llegando ahora.
+
+createBatch inicializa current_quantity con initial_quantity
+js.insert({ ...input, current_quantity: input.initial_quantity })
+Cuando entra un lote nuevo, la cantidad actual es igual a la cantidad inicial. El cliente solo manda initial_quantity — el servidor calcula current_quantity automáticamente.
+expiringBatches construye la fecha límite en JavaScript
+jsconst limitDate = new Date()
+limitDate.setDate(limitDate.getDate() + days)
+Tomas la fecha de hoy, le sumas los días que el cliente indicó, y buscas todos los lotes activos que vencen antes de esa fecha. Este es exactamente el mismo cálculo que usará el cron job —
+la diferencia es que el cron lo corre automáticamente cada noche con days = 3.

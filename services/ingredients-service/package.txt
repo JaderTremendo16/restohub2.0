@@ -1,0 +1,23 @@
+El package.json se utiliza para gestionar las dependencias del proyecto
+es decir, las librerias que se necesitan para que el proyecto funcione
+como por ejemplo:
+
+@apollo/subgraph: Se utiliza para convertir el servicio en un subgrafo federado.
+@apollo/server: Es el servidor HTTP que expone el endpoint GraphQL, recibe peticiones y las pasa a resolvers. 
+En el caso de apollo gateway, se utiliza para conectar los subgrafos entre si.
+graphql: La librearia base del lenguaje GraphQL, define la sintaxis para apollo.
+knex: Es un constructor de consultas SQL que permite la creacion de consultas SQL y además de correr migraciones.
+pg: Es el driver de PostgreSQL para Node.js, permite la comunicación entre knex y la base de datos.
+amqplib: Es la libreria que permite publicar y consumir mensajes en RabbitMQ desde Node.js. 
+Utilizado para la comunciacion asincrona entre los microservicios.
+dotenv: Es la que se encarga de cargar las variables del .env al entrorno de ejecucion (procces.env) de Node.js.
+Sin esto no se puede hacer nada, ya que las variables de entorno son las que definen la configuracion del servicio.
+
+"type":"module": Esto es para que Node.js reconozca que el proyecto está escrito con ES Modules, osea,
+la sintaxis moderna de import/export en lugar de require().
+
+Scripts:
+"dev": Arranca el servidor con "--watch", lo que significa que se reiniciará automáticamente cada vez que se detecte cambios en el código.
+"start": Arranca el servidor sin reiniciarlo automaticamente. Es lo que utiliza el Docker para arrancar el servicio.
+"migrate": Ejecuta las migraciones pendientes de la base de datos.
+

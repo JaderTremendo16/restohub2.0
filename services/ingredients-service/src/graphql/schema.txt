@@ -1,0 +1,32 @@
+Schema.js
+
+typeDefs: Es una cadena de texto para el esquema de GraphQL.
+El cual define las consultas (queries) y mutaciones (mutations) que se pueden realizar y modificar en la base de datos.
+
+Usamos enum para definir los tipos de datos que se pueden usar en el esquema.
+Tanto para 'Unit' como para 'IngredientCategory'.
+
+type: Describe datos que el servidor devuelve al cliente.
+input: Describe datos que el cliente envia al servidor.
+
+"!": indica que el dato es obligatorio, sí o sí (significa "not null")
+
+type Query: Es la consulta que se usa en la base de datos.
+type Mutation: Es la mutacion que se usa para modificar la base de datos.
+
+en "UpdateIngredientInput" no es obligatorio ya que el cliente solo manda lo que quiere cambiar a la base de datos.
+
+"[Ingredient!]" significa que la query (consulta) devuelve un array, es decir, una lista de ingredientes nunca null.
+En otras palabras si no hay ingrediente devuelve un array vacio [] y no null.
+
+el "supplier: Supplier" dentro de "Ingredient: Es un campo resulto, es decir, que el cliente puede pedir el proveedor completo junto al ingrediente en una sola query.
+La parte que se encargará de unirlos será resolvers.js.
+
+el "onlyActive: Boolean" dentro de las queries es como especie de filtro, si es true devuelve solo los registros activos, si no, no manda nada.
+Esto será util para el Admin más adelante.
+
+graphql-tag en vez de apollo-server
+De ahora en adelante se usa @apollo/server v4, por lo cual, se importa gql de graphql-tag directamente.
+que es la librería base que Apollo usa por debajo para parsear el schema.
+Parsear: proceso de analizar, desglosar y convertir una secuencia de datos (usualmente texto, JSON, XML o HTML) en un formato estructurado y entendible por un programa informático. 
+Implica convertir datos "brutos" en información útil y manejable, a menudo recorriéndolos carácter por carácter.

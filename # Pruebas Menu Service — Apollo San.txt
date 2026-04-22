@@ -1,0 +1,202 @@
+# Pruebas Menu Service — Apollo Sandbox
+
+## Primero — Crear platos
+
+
+mutation {
+  createDish(input: {
+    name: "Hamburguesa Clásica"
+    description: "Carne de res, lechuga, tomate y queso"
+    category: principal
+    preparation_time: 15
+  }) {
+    id
+    name
+    description
+    category
+    preparation_time
+    is_available
+  }
+}
+
+
+mutation {
+  createDish(input: {
+    name: "Limonada Natural"
+    description: "Limonada fresca con azúcar"
+    category: bebida
+    preparation_time: 5
+  }) {
+    id
+    name
+    category
+    is_available
+  }
+}
+
+
+## Segundo — Agregar ingredientes a los platos
+
+Asumiendo que en ingredients-service ya tienes ingredientes creados con ids 1 y 2:
+
+l
+mutation {
+  addDishIngredient(input: {
+    dish_id: 1
+    ingredient_id: 1
+    quantity: 0.200
+    unit: kg
+  }) {
+    id
+    dish_id
+    ingredient_id
+    quantity
+    unit
+  }
+}
+
+
+
+mutation {
+  addDishIngredient(input: {
+    dish_id: 1
+    ingredient_id: 2
+    quantity: 0.050
+    unit: kg
+  }) {
+    id
+    dish_id
+    ingredient_id
+    quantity
+    unit
+  }
+}
+
+
+## Tercero — Crear precios
+
+
+mutation {
+  createMenuPrice(input: {
+    dish_id: 1
+    price: 25000
+    valid_from: "2026-01-01"
+  }) {
+    id
+    dish_id
+    price
+    valid_from
+    valid_until
+  }
+}
+
+mutation {
+  createMenuPrice(input: {
+    dish_id: 2
+    price: 8000
+    valid_from: "2026-01-01"
+    valid_until: "2026-06-30"
+  }) {
+    id
+    dish_id
+    price
+    valid_from
+    valid_until
+  }
+}
+
+
+## Cuarto — Consultar todos los platos con sus ingredientes y precios
+
+
+query {
+  dishes {
+    id
+    name
+    description
+    category
+    is_active
+    ingredients {
+      id
+      ingredient_id
+      quantity
+      unit
+    }
+    prices {
+      id
+      price
+      valid_from
+      valid_until
+    }
+  }
+}
+
+
+
+
+## Quinto — Consultar solo platos disponibles
+
+
+query {
+  dishes(onlyAvailable: true) {
+    id
+    name
+    is_available
+  }
+}
+
+
+## Sexto — Consultar precios por restaurante //NO USAR
+
+
+query {
+  menuPrices(restaurant_id: "1") {
+    id
+    dish_id
+    price
+    valid_from
+    valid_until
+  }
+}
+
+
+## Séptimo — Actualizar un plato
+
+mutation {
+  updateDish(id: "1", input: {
+    description: "Carne de res 200g, lechuga fresca, tomate y queso doble"
+  }) {
+    id
+    name
+    description
+    updated_at
+  }
+}
+
+
+## Octavo — Eliminar un ingrediente de un plato
+
+mutation {
+  removeDishIngredient(id: "1") 
+}
+
+Devuelve `true` si se eliminó correctamente, `false` si no encontró el registro.
+
+
+## Noveno — Desactivar un plato
+
+
+mutation {
+  deactivateDish(id: "2") {
+    id
+    name
+    is_available
+  }
+}
+
+
+Luego vuelve a correr `dishes(onlyAvailable: true)` y verifica que ese plato ya no aparece.
+
+
+
+Corre cada una en orden y cuéntame si algo falla.

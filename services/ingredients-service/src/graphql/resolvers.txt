@@ -1,0 +1,36 @@
+Resolvers.js
+
+Concepto clave:
+
+Query = consultas.
+Mutation = modificaciones (CRUD).
+
+
+Todo resolver se recibe 3 argumentos:
+
+1. parent: Es el resultado del resolver padre (si es query). Solo es relevante en resolvers de campos anidados, como Ingredient.supplier
+2. args: Son los argumentos que el cliente mandó en la query, ejemplo: Si el cliente mandó "id:1" en la query de ingredientes, args será { id: 1 }.
+3. context: Más que todo se usa para pasar información entre todos los resolvers de una misma peticion
+
+Ahora, Knex construye las consultas SQL, como por ejemplo:
+
+"database('ingredients').where({ id }).first()"
+
+Se traduce a:
+
+"SELECT * FROM ingredients WHERE id = ? LIMIT 1" 
+
+"Ingredient: { 
+    supplier: async (parent) => {
+      if (!parent.supplier_id) return null
+      return database('suppliers').where({ id: parent.supplier_id }).first()
+    }
+}" Esta parte es un resolver de campo anidado, es decir, se encarga de unir la tabla de ingredientes con la tabla de proveedores, en caso de no haber proveedor devuelve "null".
+Es por ello que se usa if(!partent.supplier_id) para evitar errores.
+
+async await: se usa para esperar a que la función termine de ejecutarse, en este caso, que termine de insertar el ingrediente en la base de datos.
+
+".returning('*')": En PostgreSQL no devuelve la fila despue de un insert o un update, por lo que usa ".returning('*')" para que devuelva la fila completa.
+
+Knex siempre envuelve las consultas en un array, es por eso que se usa "const [ingredient] = ..." para desestructurar el array y que solo devuelva el primer elemento.
+

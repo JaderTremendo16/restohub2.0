@@ -1,0 +1,5 @@
+¿Qué hace cada parte?
+navItems — es un array (lista) de objetos. Cada objeto representa un link del sidebar. Lo separamos así para que si mañana quieres agregar una sección nueva, solo agregas un objeto a la lista en lugar de copiar y pegar HTML.
+NavLink — es un componente de React Router. Es como un <a> normal de HTML, pero con superpoderes: sabe automáticamente si la ruta actual coincide con su to, y te da una función isActive para que puedas cambiar los estilos cuando está activo.
+end={item.path === "/"} — esto es importante. Sin end, el link de Dashboard (/) estaría "activo" en todas las rutas porque todas empiezan con /. El end le dice "solo estás activo si la ruta es exactamente /".
+className={({ isActive }) => ...} — aquí usamos una función en lugar de un string. NavLink nos pasa isActive como parámetro y nosotros devolvemos las clases según si está activo o no. Cuando está activo: fondo naranja, texto blanco. Cuando no: texto gris, con hover sutil.

@@ -1,0 +1,38 @@
+Frontend: 
+
+React: Es una librería de JavaScript para construir interfaces de usuario. 
+Vite: Es un bundler(empaquetador) de JavaScript que se utiliza para empaquetar y servir el código de la aplicación. 
+Tailwind CSS: Es un framework de CSS que se utiliza para estilizar la aplicación. 
+
+Dependencias:
+@apollo/client: es la librería que le permite a React hablar con tu API GraphQL. Sin esto, no puedes hacer ninguna query ni mutation.
+graphql: es el "lenguaje base" que Apollo necesita por debajo para entender la sintaxis de GraphQL. Apollo lo requiere pero tú no lo usas directamente.
+react-router-dom: es el sistema de navegación. Sin esto, tu app sería una sola página sin rutas — no podrías ir de /dashboard a /ingredientes etc.
+
+¿Qué es el proxy y por qué es crítico?
+Cuando tu frontend (corriendo en localhost:5173) intenta hablar con tu API (corriendo en localhost:4000), el navegador lo bloquea por seguridad — esto se llama CORS (Cross-Origin Resource Sharing). El navegador dice "oye, estás en un origen diferente, no te dejo".
+El proxy de Vite soluciona esto de forma elegante: en lugar de que el frontend hable directamente con localhost:4000, habla consigo mismo en /graphql. Vite intercepta esa petición internamente y la reenvía al gateway. El navegador nunca ve el salto, así que no hay problema de CORS.
+target: 'http://gateway:4000' — nota que usamos gateway en lugar de localhost. Esto es porque dentro de Docker, los servicios se llaman por su nombre, no por localhost. gateway es exactamente el nombre que me dijiste que tiene tu servicio.
+
+createHttpLink — crea el "canal de comunicación" entre Apollo y tu API. Le dices a dónde enviar las peticiones GraphQL. Usamos /graphql (sin localhost ni puerto) porque el proxy de Vite se encarga del resto.
+InMemoryCache — es el sistema de caché de Apollo. Cuando haces una query y obtienes datos, Apollo los guarda en memoria. Si vuelves a pedir los mismos datos, Apollo los devuelve instantáneamente sin hacer otra petición a la API. Es automático y gratuito.
+ApolloClient — junta el link (canal) y la caché en un objeto central que luego le pasaremos a toda la app.
+export default client — exportamos el cliente para que cualquier parte de la app pueda usarlo.
+
+¿Qué está pasando aquí? — el concepto de Providers
+En React existe un patrón llamado Provider (proveedor). Un Provider envuelve a toda tu app y le da acceso a algo — como un servicio disponible para todos los componentes hijos sin tener que pasarlo manualmente.
+Aquí hay dos providers:
+ApolloProvider client={client} — le dice a toda la app "tienes acceso al cliente de Apollo". Sin esto, ningún componente podría usar useQuery o useMutation.
+BrowserRouter — le dice a toda la app "tienes un sistema de rutas". Sin esto, react-router-dom no funciona en ningún componente.
+StrictMode — es una herramienta de desarrollo de React que detecta problemas potenciales en tu código y te los muestra en consola. No afecta la app en producción, solo te ayuda a escribir mejor código.
+El orden importa: Apollo envuelve a BrowserRouter porque queremos que las rutas también tengan acceso a Apollo.
+
+¿Qué es un KPI?KPI significa Key Performance Indicator — indicador clave de rendimiento. En este contexto es simplemente un número importante mostrado en una card. "Tienes 5 ingredientes con stock crítico" es un KPI.
+
+¿Qué es un Modal?Es una ventana que aparece encima del contenido actual sin cambiar de página. Cuando haces click en "Nuevo ingrediente", el fondo se oscurece y aparece un formulario flotante. Al cancelar o guardar, desaparece.¿Qué es el estado local en React?Hasta ahora los datos venían de la API. Pero algunas cosas son puramente visuales — como "¿está abierto el modal?" o "¿qué categoría está seleccionada en el filtro?". Para eso usamos useState, que es una forma de guardar información dentro del componente que cuando cambia, React actualiza la pantalla automáticamente.
+
+
+
+Nginx: Es un servidor web que se utiliza para servir archivos estáticos y dinámicos. 
+En este caso, se utiliza para servir los archivos estáticos del frontend y redirigir las peticiones GraphQL al gateway.
+Basicamente una conexión del Backend, Frontend y el API Gateway

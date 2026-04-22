@@ -1,0 +1,6 @@
+¿Qué es un Layout?
+Piénsalo así: en casi todas las apps que usas (Gmail, Notion, Spotify), hay partes de la pantalla que nunca cambian sin importar en qué sección estés. El sidebar siempre está ahí. El header siempre está arriba. Solo el contenido del centro cambia.
+Eso es exactamente lo que vamos a construir. En React, esto se hace con un componente llamado Layout que actúa como el "marco" fijo de la pantalla, y dentro de ese marco va el contenido de cada página.
+
+¿Qué es el <Outlet />?
+React Router tiene un componente especial llamado Outlet. Es un "hueco" que le dices a React "aquí va el contenido de la ruta activa". Cuando el usuario navega a /ingredientes, React pone el componente de Ingredientes en ese hueco. Cuando va a /menu, pone el de Menú. El Layout nunca se destruye ni se recrea — solo cambia lo que hay en el hueco.

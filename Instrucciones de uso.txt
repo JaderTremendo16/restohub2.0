@@ -1,0 +1,67 @@
+# Guía Completa de la Arquitectura de RestoHub
+
+Bienvenido a la guía definitiva para entender cómo funciona este proyecto. Te lo explicaré de la forma más sencilla posible.
+
+1. ¿Cómo está construido?
+
+En este trabajo tenemos 2 microservicios + Gateway:
+- Ingredientes Service: Se encarga únicamente de gestionar los ingredientes.
+- Menu Service: Se encarga de gestionar el menú.
+- Gateway: Basicamente es el que se encarga de recibir todas las peticiones del usuario y enviarlas al microservicio correspondiente.
+
+ 2. ¿Cómo integrar a estos a microservicios desarrollados en otros lenguajes?
+
+La maravilla de los microservicios y de usar Docker, es que no importa en qué lenguaje programen los demás equipos (Python, Java, Go, C#, Rust, etc.). Todos pueden trabajar juntos siempre que sigan 3 simples reglas para comunicarse:
+
+Real esto no tiene pérdida, cualquier duda pidansela a gemini o claude, intenté ser lo más claro posible usando comentarios claves
+
+Mis URL son 
+4001: Para Ingredientes
+4002: Para Menú
+
+
+Lo unico que deben hacer es si ya tienen el docker-compose con un microservicio creado, es reenmplazar la direccion del microservicio por la de ustedes, por ejemplo:
+el puerto 4001 es para cocina o cliente
+entonces el 4002 es para ingredientes
+el 4003 es para el menú
+y así sucesivamente.
+
+Solo para el uso de los microservicios que están trabajando, porque ya luego se hace la integración con los demás.
+
+Comandos:
+Para correr las migraciones pues solo es:
+docker exec -it restohub-menu-service npm run migrate
+docker exec -it restohub-ingredients-service npm run migrate
+docker exec -it location_service npx knex migrate:latest --knexfile src/db/knexfile.js
+docker exec -it restohub-inventory-service npm run migrate
+
+Para correr las semillas es con:
+docker exec -it location_service npx knex seed:run --knexfile src/db/knexfile.js
+
+Para hacer rollback de migraciones:
+docker exec -it restohub-ingredients-service npx knex migrate:rollback --knexfile src/database/knexfile.js
+
+Si necesitan reiniciar solo una cosa y no hacer el docker-compose down y up hagan esto:
+
+docker compose up --build frontend
+o restart o down
+o cualquier microservicio
+
+
+
+en otra terminal luego de que inicies el docker-compose up --build
+
+Para finalizar, haz el comando 
+npm run dev en la carpeta restohub-frontend para iniciar el frontend y poder probar todo
+Hay que descargar @apollo/client en restohub-frontend
+npm install @apollo/client
+
+
+Ya no es necesario hacer esto, ya el servicio funciona solo con el docker-compose, pero pueden usar estos comandos por si acaso.
+
+Por cierto, hay 2 localhost
+
+http://localhost:3000/ para el frontend de admin/gerente
+
+http://localhost:4777/ para el frontend del cliente
+

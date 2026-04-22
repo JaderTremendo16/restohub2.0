@@ -1,0 +1,523 @@
+#Este archivo es el que le dice a Docker como debe construir y ejecutar los servicios
+name: restohub
+
+networks:
+  restohub-network:
+    driver: bridge #Tipo de red: puente lo que permite la comunicacion entre contendores
+
+volumes:
+  #Volumenes: son para que los datos se mantengan a pesar de cada reinicio de los servicios
+  ingredients_db_data:
+  menu_db_data:
+  inventory_db_data:
+  pg_location:
+  rabbitmq_data:
+  kitchen_db_data:
+  orders_db_data:
+  pos_db_data:
+  rh2_customer_db_data:
+  rh2_loyalty_db_data:
+
+
+services:
+  #Servicios: son los contenedores que se van a ejecutar
+
+  # RabbitMQ: Broker de mensajes, aquel que recibe almancena y envia mensajes entre los microservicios
+  rabbitmq:
+    #Imagen de rabbitmq que se utilizará + sus variables de entornos + puertos + volumenes
+    image: rabbitmq:3-management
+    container_name: restohub-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MGMT_PORT}:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - restohub-network
+    healthcheck:
+      #Sirve para verificar que el servicio esté corriendo correctamente
+      test: [ "CMD", "rabbitmq-diagnostics", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Base de datos: Ingredientes
+  ingredients-db:
+    #Lo mismo que la imagen de rabbitmq pero con postgres
+    image: postgres:${POSTGRES_VERSION}
+    container_name: restohub-ingredients-db
+    env_file:
+      #Archivo .env que posee las variables de entorno
+      - ./services/ingredients-service/.env
+    volumes:
+      - ingredients_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    healthcheck:
+      #lo mismo que el healthcheck de rabbitmq pero con postgres
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio: Ingredientes: Aqui se define como se va a construir el servicio a partir del dockerfile que está en su carpeta
+  ingredients-service:
+    build:
+      context: ./services/ingredients-service
+      dockerfile: Dockerfile
+    container_name: restohub-ingredients-service
+    env_file:
+      #lo mismo que con db, un .env con variables de entorno
+      - ./services/ingredients-service/.env
+    ports:
+      - "${INGREDIENTS_PORT}:4001"
+    depends_on:
+      ingredients-db:
+        #aqui espera que la base de datos esté lista para iniciar el servicio
+        condition: service_healthy
+      rabbitmq:
+        #aqui lo mismo pero con rabbitmq
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "netstat -an | grep 4001 || exit 1" ] # Se encarga de verificar que el servicio esté corriendo correctamente
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 15
+    networks:
+      - restohub-network
+
+  # Base de datos: Menú 
+  menu-db:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: restohub-menu-db
+    env_file:
+      - ./services/menu-service/.env
+    volumes:
+      - menu_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio: Menú: Lo mismo que en ingredientes y que cualquier servicio que tenga una base de datos en el trabajo
+  menu-service:
+    build:
+      context: ./services/menu-service
+      dockerfile: Dockerfile
+    container_name: restohub-menu-service
+    env_file:
+      - ./services/menu-service/.env
+    ports:
+      - "${MENU_PORT}:4002"
+    depends_on:
+      menu-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "netstat -an | grep 4002 || exit 1" ] # Se encarga de verificar que el servicio esté corriendo correctamente
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 15
+    networks:
+      - restohub-network
+
+  # Base de datos: Paises y Restaurantes: Lo mismo paracticamente  
+  db_location:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: db_location
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: db_location_service
+      POSTGRES_USER: restohub
+      POSTGRES_PASSWORD: restohub_pass
+    volumes:
+      - pg_location:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U restohub -d db_location_service" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+  location-service:
+    build:
+      context: ./services/location-service
+      dockerfile: Dockerfile
+    container_name: location_service
+    restart: unless-stopped
+    environment:
+      PORT: 4005
+      DB_HOST: db_location
+      DB_PORT: 5432
+      DB_NAME: db_location_service
+      DB_USER: restohub
+      DB_PASSWORD: restohub_pass
+      JWT_SECRET: restohub_secret_key
+    ports:
+      - "${PAIS_RESTAURANTE_PORT}:4005"
+    depends_on:
+      db_location:
+        condition: service_healthy
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "netstat -an | grep 4005 || exit 1" ] # Se encarga de verificar que el servicio esté corriendo correctamente
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 15
+
+  # Base de datos: Inventario
+  inventory-db:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: restohub-inventory-db
+    env_file:
+      - ./services/inventory-service/.env
+    volumes:
+      - inventory_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+  # Servicio: Inventario
+  inventory-service:
+    build:
+      context: ./services/inventory-service
+      dockerfile: Dockerfile
+    container_name: restohub-inventory-service
+    env_file:
+      - ./services/inventory-service/.env
+    ports:
+      - "${INVENTORY_PORT}:4003"
+    depends_on:
+      inventory-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "netstat -an | grep 4003 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 60s
+      retries: 15
+    networks:
+      - restohub-network
+
+  # Base de datos: Órdenes
+  orders-db:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: restohub-orders-db
+    env_file:
+      - ./services/orders-service/.env
+    volumes:
+      - orders_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio: Órdenes
+  orders-service:
+    build:
+      context: ./services/orders-service
+      dockerfile: Dockerfile
+    container_name: restohub-orders-service
+    ports:
+      - "3001:3001"
+    env_file:
+      - ./services/orders-service/.env
+    networks:
+      - restohub-network
+    depends_on:
+      orders-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3001/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # Base de datos: Cocina (Kitchen)
+  kitchen-db:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: restohub-kitchen-db
+    env_file:
+      - ./services/kitchen-service/.env
+    volumes:
+      - kitchen_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio: Cocina (Kitchen)
+  kitchen-service:
+    build:
+      context: ./services/kitchen-service
+      dockerfile: Dockerfile
+    container_name: restohub-kitchen-service
+    ports:
+      - "3002:3002"
+    env_file:
+      - ./services/kitchen-service/.env
+    networks:
+      - restohub-network
+    depends_on:
+      kitchen-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3002/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  # Base de datos: POS
+  pos-db:
+    image: postgres:${POSTGRES_VERSION}
+    container_name: restohub-pos-db
+    env_file:
+      - ./services/pos-service/.env
+    volumes:
+      - pos_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Servicio: POS
+  pos-service:
+    build:
+      context: ./services/pos-service
+      dockerfile: Dockerfile
+    container_name: restohub-pos-service
+    ports:
+      - "3004:3004"
+    env_file:
+      - ./services/pos-service/.env
+    networks:
+      - restohub-network
+    depends_on:
+      pos-db:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:3004/health || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  db_customer:
+    image: postgres:16-alpine
+    container_name: restohub-customer-db
+    environment:
+      POSTGRES_USER: customer_user
+      POSTGRES_PASSWORD: customer_pass
+      POSTGRES_DB: customer_db
+    volumes:
+      - rh2_customer_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    ports:
+      - "25433:5432"      # Externo 25433 → evita colisión con puerto 5432/5433 del equipo
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U customer_user -d customer_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  db_loyalty:
+    image: postgres:16-alpine
+    container_name: restohub-loyalty-db
+    environment:
+      POSTGRES_USER: loyalty_user
+      POSTGRES_PASSWORD: loyalty_pass
+      POSTGRES_DB: loyalty_db
+    volumes:
+      - rh2_loyalty_db_data:/var/lib/postgresql/data
+    networks:
+      - restohub-network
+    ports:
+      - "25434:5432"      # Externo 25434 → aislado de otras DBs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U loyalty_user -d loyalty_db"]
+      interval: 5s
+      start_period: 20s
+      timeout: 5s
+      retries: 10
+
+  # ── Microservices ──────────────────────────────────────────────────────────
+  customer-service:
+    build:
+      context: ./services/customer-service
+      dockerfile: Dockerfile
+    container_name: restohub-customer-service
+    environment:
+      DATABASE_URL: postgresql://customer_user:customer_pass@db_customer:5432/customer_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
+      SECRET_KEY: "restohub_secret_key_v2_2024"
+    volumes:
+      - ./services/customer-service:/app
+    networks:
+      - restohub-network
+    ports:
+      - "28000:8000"      # Externo 28000 → Swagger: http://localhost:28000/docs
+    restart: unless-stopped
+    depends_on:
+      db_customer:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+  loyalty-service:
+    build:
+      context: ./services/loyalty-service
+      dockerfile: Dockerfile
+    container_name: restohub-loyalty-service
+    environment:
+      DATABASE_URL: postgresql://loyalty_user:loyalty_pass@db_loyalty:5432/loyalty_db
+      RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
+    volumes:
+      - ./services/loyalty-service:/app
+    networks:
+      - restohub-network
+    ports:
+      - "28001:8001"      # Externo 28001 → Swagger: http://localhost:28001/docs
+    restart: unless-stopped
+    depends_on:
+      db_loyalty:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+
+
+  # Microservicio de Staff: Este está hecho en python (FASTAPI)
+  staff-api:
+    build:
+      context: ./services/staff-service/backend
+    container_name: restohub-staff-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./services/staff-service/backend:/app
+    networks:
+      - restohub-network
+
+  # Subgrafo de Staff: Este está hecho en nodejs (APOLLO) para usarlo como puente entre python y el gateway que usa Apollo
+  staff-subgraph:
+    build:
+      context: ./services/staff-subgraph
+    container_name: restohub-staff-subgraph
+    ports:
+      - "4006:4006"
+    depends_on:
+      - staff-api
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "netstat -an | grep 4006 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+  # Gateway: Aqui se define la Api Gateway utlizada con Apollo Gateway para los microservicios
+  gateway:
+    #Lo mismo de los servicios pero con apollo gateway
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: restohub-gateway
+    ports:
+      #Este es el puerto que estará disponible para el usaurio final
+      - "${GATEWAY_PORT}:4000"
+    depends_on:
+      #Depende de los servicios de ingredientes y menu esten listos para poder iniciar
+      ingredients-service:
+        condition: service_healthy
+      menu-service:
+        condition: service_healthy
+      location-service:
+        condition: service_healthy
+      inventory-service:
+        condition: service_healthy
+      staff-subgraph:
+        condition: service_healthy
+      orders-service:
+        condition: service_healthy
+      kitchen-service:
+        condition: service_healthy
+      pos-service:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+      loyalty-service:
+        condition: service_started
+    networks:
+      - restohub-network
+    healthcheck:
+      test: [ "CMD-SHELL", "netstat -an | grep 4000 || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+  # Frontend: Es basicamente la pagina web que ve el usuario final. Esta hecho en react (VITE)
+  frontend:
+    build:
+      context: ./restohub-frontend
+      dockerfile: Dockerfile
+    container_name: restohub-frontend
+    ports:
+      - "3000:80" # El 3000 es el puerto que estará disponible para el usaurio final
+    depends_on:
+      - gateway
+    networks:
+      - restohub-network
+
+  # Customer Frontend: Aplicacion de clientes para ver menu, lealtad
+  customer-frontend:
+    build:
+      context: ./customer-frontend
+      dockerfile: Dockerfile
+    container_name: restohub-customer-frontend
+    ports:
+      - "4777:80" # El puerto 4777 para clientes
+    depends_on:
+      - gateway
+    networks:
+      - restohub-network
