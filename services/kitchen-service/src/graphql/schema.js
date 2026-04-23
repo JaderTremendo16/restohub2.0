@@ -43,13 +43,13 @@ const typeDefs = gql`
   }
 
   type Query {
-    kitchenOrders: [KitchenOrder!]!
+    kitchenOrders(restaurant_id: String): [KitchenOrder!]!
     kitchenOrder(id: ID!): KitchenOrder
     cooks: [Cook!]!
   }
 
   type Mutation {
-    loginCook(email: String!, password: String!): KitchenAuthPayload!
+    loginCook(email: String!, password: String!, restaurant_id: String): KitchenAuthPayload!
     updateKitchenOrderStatus(id: ID!, status: String!): KitchenOrder!
     assignCook(order_id: ID!, cook_id: ID!): KitchenOrder!
     registerCook(

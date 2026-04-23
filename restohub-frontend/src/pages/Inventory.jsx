@@ -1131,7 +1131,7 @@ function SeccionUmbralMinimo({ locationId, ingredients }) {
     },
   );
 
-  const UNIDADES = ["kg", "g", "L", "ml", "unidad"];
+  const UNIDADES = ["kg", "g", "l", "ml", "unidad"];
   const loading = loadingCreate || loadingUpdate;
 
   const handleSubmit = () => {

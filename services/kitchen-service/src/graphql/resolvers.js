@@ -16,10 +16,12 @@ const resolvers = {
       );
     },
 
-    kitchenOrders: async () => {
-      return await db("kitchen_orders")
-        .select("*")
-        .orderBy("created_at", "desc");
+    kitchenOrders: async (_, { restaurant_id }) => {
+      let query = db("kitchen_orders");
+      if (restaurant_id) {
+        query = query.where({ restaurant_id: String(restaurant_id) });
+      }
+      return await query.orderBy("created_at", "desc");
     },
 
     kitchenOrder: async (_, { id }) => {
@@ -51,7 +53,7 @@ const resolvers = {
       return newCook[0];
     },
 
-    loginCook: async (_, { email, password }) => {
+    loginCook: async (_, { email, password, restaurant_id }) => {
       const cook = await db("cooks").where({ email }).first();
 
       if (!cook) {
@@ -62,6 +64,10 @@ const resolvers = {
 
       if (!isValidPassword) {
         throw new Error("Correo o contraseña incorrectos");
+      }
+
+      if (restaurant_id && String(cook.restaurant_id) !== String(restaurant_id)) {
+        throw new Error("Este cocinero no pertenece a esta sede");
       }
 
       const token = jwt.sign(

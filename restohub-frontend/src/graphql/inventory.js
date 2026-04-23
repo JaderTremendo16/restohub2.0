@@ -100,7 +100,7 @@ export const GET_STOCK = gql`
 
 // Trae las configuraciones de stock mínimo — para saber cuándo hay stock crítico
 export const GET_LOW_STOCK_CONFIGS = gql`
-  query GetLowStockConfigs($location_id: Int) {
+  query GetLowStockConfigs($location_id: ID) {
     lowStockConfigs(location_id: $location_id) {
       id
       ingredient_id

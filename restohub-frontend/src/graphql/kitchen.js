@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client/core";
 
 export const LOGIN_COOK = gql`
-  mutation LoginCook($email: String!, $password: String!) {
-    loginCook(email: $email, password: $password) {
+  mutation LoginCook($email: String!, $password: String!, $restaurant_id: String) {
+    loginCook(email: $email, password: $password, restaurant_id: $restaurant_id) {
       token
       cook {
         id
@@ -39,8 +39,8 @@ export const REGISTER_COOK = gql`
 `;
 
 export const GET_KITCHEN_ORDERS = gql`
-  query {
-    kitchenOrders {
+  query GetKitchenOrders($restaurant_id: String) {
+    kitchenOrders(restaurant_id: $restaurant_id) {
       id
       order_id
       status

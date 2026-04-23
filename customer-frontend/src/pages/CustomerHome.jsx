@@ -142,9 +142,9 @@ const CustomerHome = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 gap-8">
         {/* Tier Card */}
-        <div className={`lg:col-span-2 relative overflow-hidden bg-gradient-to-br ${tierColors[tier]} rounded-[2.5rem] p-10 text-white shadow-2xl shadow-brand-dark/20`}>
+        <div className={`relative overflow-hidden bg-gradient-to-br ${tierColors[tier]} rounded-[2.5rem] p-10 text-white shadow-2xl shadow-brand-dark/20`}>
           <div
             className={`absolute top-0 right-0 w-80 h-80 bg-white opacity-10 blur-3xl`}
           />
@@ -197,57 +197,6 @@ const CustomerHome = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Promos Column */}
-        <div className="space-y-6">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest">
-              Ofertas para hoy
-            </h3>
-            <Zap className="text-brand-500 animate-pulse" size={16} />
-          </div>
-
-          {promos.length === 0 ? (
-            <div className="p-6 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center">
-              <p className="text-slate-400 text-sm italic">
-                No hay ofertas disponibles en tu sede actualmente.
-              </p>
-            </div>
-          ) : (
-            promos.slice(0, 3).map((p) => (
-              <div
-                key={p.id}
-                onClick={() => navigate("/menu")}
-                className="group bg-white p-5 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center font-black text-xl">
-                    {p.discountPercent}%
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="font-bold text-slate-900 leading-tight group-hover:text-brand-600 transition-colors">
-                      {p.title}
-                    </h4>
-                    <p className="text-slate-500 text-xs line-clamp-1">
-                      {p.description}
-                    </p>
-                  </div>
-                  <ArrowUpRight
-                    size={18}
-                    className="text-slate-300 group-hover:text-brand-500 transition-colors"
-                  />
-                </div>
-              </div>
-            ))
-          )}
-
-          <button
-            onClick={() => navigate("/menu")}
-            className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-200 transition-all"
-          >
-            Ver Todas las Promociones
-          </button>
         </div>
       </div>
 

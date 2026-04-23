@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   LOGIN_COOK,
@@ -47,10 +47,18 @@ const priorityText = {
 
 export default function KitchenDashboard() {
   const { user } = useAuth();
-  const [cook, setCook] = useState(() => {
-    const saved = localStorage.getItem("kitchen_cook");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [cook, setCook] = useState(null);
+
+  // Efecto para sincronizar el cocinero cuando cambia la sede (para admins)
+  useEffect(() => {
+    if (user?.locationId) {
+      const saved = localStorage.getItem(`kitchen_cook_${user.locationId}`);
+      setCook(saved ? JSON.parse(saved) : null);
+    } else {
+      // Si no hay sede (ej. logout), limpiar
+      setCook(null);
+    }
+  }, [user?.locationId]);
   const [isRegistering, setIsRegistering] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [registerForm, setRegisterForm] = useState({
@@ -69,6 +77,7 @@ export default function KitchenDashboard() {
   const [loginCook] = useMutation(LOGIN_COOK);
   const [registerCook] = useMutation(REGISTER_COOK);
   const { data, loading, error, refetch, networkStatus } = useQuery(GET_KITCHEN_ORDERS, {
+    variables: { restaurant_id: cook?.restaurant_id },
     pollInterval: 3000,
     notifyOnNetworkStatusChange: true,
     skip: !cook,
@@ -85,12 +94,18 @@ export default function KitchenDashboard() {
   const handleLogin = async () => {
     try {
       setLoginError(null);
-      const result = await loginCook({ variables: loginForm });
-      setCook(result.data.loginCook.cook);
-      localStorage.setItem("kitchen_token", result.data.loginCook.token);
+      const result = await loginCook({ 
+        variables: { 
+          ...loginForm, 
+          restaurant_id: user?.locationId || null 
+        } 
+      });
+      const loggedCook = result.data.loginCook.cook;
+      setCook(loggedCook);
+      localStorage.setItem(`kitchen_token_${user?.locationId}`, result.data.loginCook.token);
       localStorage.setItem(
-        "kitchen_cook",
-        JSON.stringify(result.data.loginCook.cook),
+        `kitchen_cook_${user?.locationId}`,
+        JSON.stringify(loggedCook),
       );
     } catch (e) {
       setLoginError(e.message);
@@ -138,6 +153,12 @@ export default function KitchenDashboard() {
         : new Date();
     return Math.round((end - start) / 60000);
   };
+
+  function LocationName({ locationId, locations }) {
+    const loc = locations?.find((l) => String(l.id) === String(locationId));
+    if (!loc) return <>{locationId}</>;
+    return <>{loc.name}</>;
+  }
 
   if (!cook) {
     return (
@@ -298,6 +319,10 @@ export default function KitchenDashboard() {
     ready: ordersForMySede.filter((o) => o.status === "ready"),
   };
 
+  const pendingCount = groupedOrders.pending.length;
+  const inProcessCount = groupedOrders.in_preparation.length + groupedOrders.packing.length;
+  const readyCount = groupedOrders.ready.length;
+
   return (
     <div style={s.container}>
       {message && (
@@ -315,7 +340,7 @@ export default function KitchenDashboard() {
         <div>
           <h1 style={s.title}>🍳 Dashboard de Cocina</h1>
           <span style={s.subtitle}>
-            {ordersForMySede.length} órdenes activas · Sede: {myLocation?.name || cook?.restaurant_id}
+            {pendingCount} pendientes · {inProcessCount} en proceso · {readyCount} listas · Sede: {myLocation?.name || cook?.restaurant_id}
           </span>
         </div>
         <div style={s.cookInfo}>
@@ -325,8 +350,8 @@ export default function KitchenDashboard() {
             style={s.logoutBtn}
             onClick={() => {
               setCook(null);
-              localStorage.removeItem("kitchen_token");
-              localStorage.removeItem("kitchen_cook");
+              localStorage.removeItem(`kitchen_token_${user?.locationId}`);
+              localStorage.removeItem(`kitchen_cook_${user?.locationId}`);
             }}
           >
             Salir
@@ -395,7 +420,7 @@ export default function KitchenDashboard() {
                       </span>
                     </div>
 
-                    <p style={s.info}>🏪 {order.restaurant_id}</p>
+                    <p style={s.info}>🏪 <LocationName locationId={order.restaurant_id} locations={locationsData?.locations} /></p>
                     <p style={s.info}>
                       📱 {order.channel} ·{" "}
                       <span

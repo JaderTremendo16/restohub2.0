@@ -17,6 +17,7 @@ import {
   GENERATE_INVOICE,
   CREATE_PAYMENT,
 } from "../graphql/orders";
+import { GET_LOCATIONS } from "../graphql/location";
 
 // ───────────────── CONFIG ─────────────────
 const STATUS_COLORS = {
@@ -140,6 +141,13 @@ function CustomerName({ customerId }) {
   const c = data?.customer;
   if (!c) return <span style={{ opacity: 0.6 }}>{customerId?.slice(0, 8) || "—"}</span>;
   return <span style={{ fontWeight: 700 }}>{c.name}</span>;
+}
+
+// ───────────────── LOCATION NAME ─────────────────
+function LocationName({ locationId, locations }) {
+  const loc = locations?.find((l) => String(l.id) === String(locationId));
+  if (!loc) return <span style={{ opacity: 0.6 }}>{locationId}</span>;
+  return <span style={{ fontWeight: 700 }}>{loc.name}</span>;
 }
 
 // ───────────────── ITEMS MODAL ─────────────────
@@ -888,6 +896,7 @@ function OrderCard({
   onStatusChange,
   onPriorityChange,
   onOpenModal,
+  locations,
 }) {
   const nextSteps = ORDER_ALLOWED_TRANSITIONS[order.status] || [];
   const canInvoice = ["ready", "delivered"].includes(order.status);
@@ -931,7 +940,7 @@ function OrderCard({
       </div>
 
       <p style={s.info}>
-        <span style={{ opacity: 0.7 }}>🏪</span> {order.restaurant_id} ·{" "}
+        <span style={{ opacity: 0.7 }}>🏪</span> <LocationName locationId={order.restaurant_id} locations={locations} /> ·{" "}
         <span style={{ opacity: 0.7 }}>👤</span> <CustomerName customerId={order.customer_id} />
       </p>
       <p style={s.info}>
@@ -1039,6 +1048,8 @@ export default function OrdersDashboard() {
   const { data: invoicesData } = useQuery(GET_PAID_INVOICES, {
     fetchPolicy: "network-only",
   });
+
+  const { data: locationsData } = useQuery(GET_LOCATIONS);
 
   // El "loading" de Apollo solo es true en la primera carga.
   // Con networkStatus podemos saber si está refrescando sin mostrar el spinner molesto.
@@ -1204,6 +1215,15 @@ export default function OrdersDashboard() {
           >
             📟 Historial Facturas
           </button>
+          <button
+            style={{ ...s.btnSecondary, background: "#e3f2fd", color: "#1976d2", border: "1px solid #bbdefb" }}
+            onClick={() => {
+              refetch();
+              showMsg("Sincronizado");
+            }}
+          >
+            🔄 Sincronizar
+          </button>
         </div>
       </div>
 
@@ -1248,6 +1268,7 @@ export default function OrdersDashboard() {
             onStatusChange={handleStatusChange}
             onPriorityChange={handlePriorityChange}
             onOpenModal={(type, ord) => setModal({ type, order: ord })}
+            locations={locationsData?.locations}
           />
         ))}
       </div>

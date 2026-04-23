@@ -13,7 +13,7 @@ export const GET_STAFF_DATA = gql`
       base_hours
       qr_code
     }
-    activeStaff {
+    activeStaff(location_id: $location_id) {
       id
       name
       start

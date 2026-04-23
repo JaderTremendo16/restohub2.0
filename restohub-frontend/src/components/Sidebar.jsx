@@ -126,13 +126,7 @@ function Sidebar() {
           roles: ["admin"],
         },
         {
-          label: "Promociones",
-          path: "/loyalty/promociones",
-          icon: <Store size={18} />,
-          roles: ["admin"],
-        },
-        {
-          label: "Premios",
+          label: "Puntos y Premios",
           path: "/loyalty/premios",
           icon: <Gift size={18} />,
           roles: ["admin"],
