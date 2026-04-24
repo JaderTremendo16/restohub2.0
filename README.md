@@ -66,7 +66,9 @@ App de Clientes: http://localhost:4777 (Vista de menú y lealtad)\
 API Gateway (GraphQL) http://localhost:4000 (Sitio de Pruebas en Apollo Server)\
 RabbitMQ Management: http://localhost:15672 (Panel de mensajería)\
 Customer API (Swagger): http://localhost:28000/docs (Documentación REST (Ya vinculado por Apollo Gateway))\
-Loyalty API (Swagger): http://localhost:28001/docs (Documentación REST (Lo mismo que con Customer))
+Loyalty API (Swagger): http://localhost:28001/docs (Documentación REST (Lo mismo que con Customer))\
+**Credenciales de prueba de PayPal para realizar pagos como cliente:** sb-linqo50566422@personal.example.com / **contraseña:** MM7vZ|-S
+
 
 ---
 
