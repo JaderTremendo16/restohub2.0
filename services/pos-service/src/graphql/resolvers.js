@@ -58,13 +58,12 @@ const resolvers = {
       return { ...order, items };
     },
 
-    posMonthlyReport: async (_, { fromYear, toYear }) => {
+    posMonthlyReport: async (_, { fromYear, toYear, restaurant_id }) => {
       const currentYear = new Date().getFullYear();
       const from = fromYear || currentYear - 1;
       const to = toYear || currentYear;
 
-      const result = await db.raw(
-        `
+      let query = `
         SELECT
           EXTRACT(YEAR  FROM created_at)::int AS year,
           EXTRACT(MONTH FROM created_at)::int AS month,
@@ -73,11 +72,21 @@ const resolvers = {
         FROM pos_orders
         WHERE status = 'delivered'
           AND EXTRACT(YEAR FROM created_at) BETWEEN ? AND ?
+      `;
+      const params = [from, to];
+
+      if (restaurant_id) {
+        const ids = restaurant_id.split(',').map(id => id.trim());
+        query += ` AND restaurant_id IN (${ids.map(() => '?').join(',')})`;
+        params.push(...ids);
+      }
+
+      query += `
         GROUP BY year, month
         ORDER BY year, month
-      `,
-        [from, to],
-      );
+      `;
+
+      const result = await db.raw(query, params);
 
       return result.rows.map((r) => ({
         year: r.year,

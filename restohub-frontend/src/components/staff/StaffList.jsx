@@ -1,3 +1,5 @@
+import { CreditCard, ChefHat } from "lucide-react";
+
 const StaffList = ({ employees, toggleStatus }) => {
   return (
     <div style={{ marginTop: "30px" }}>
@@ -39,6 +41,27 @@ const StaffList = ({ employees, toggleStatus }) => {
             <h3 style={{ margin: "0 0 5px 0", fontSize: "1.1rem" }}>
               {emp.name}
             </h3>
+
+            {/* Badge de rol */}
+            <div style={{ marginBottom: "10px" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "2px 10px",
+                  borderRadius: "9999px",
+                  fontSize: "0.75rem",
+                  fontWeight: "700",
+                  backgroundColor: emp.role === "cajero" ? "#dbeafe" : "#ffedd5",
+                  color: emp.role === "cajero" ? "#1d4ed8" : "#c2410c",
+                }}
+              >
+                {emp.role === "cajero"
+                  ? <><CreditCard size={12} /> Cajero</>
+                  : <><ChefHat size={12} /> Cocinero</>}
+              </span>
+            </div>
 
             <div
               style={{

@@ -26,13 +26,13 @@ const resolvers = {
   },
 
   Mutation: {
-    createEmployee: async (_, { name, country, location_id, phone, email }) => {
+    createEmployee: async (_, { name, country, location_id, phone, email, role }) => {
       // Usamos .post y pasamos params porque Python los recibe como argumentos de función
       const response = await axios.post(
         `${STAFF_API_URL}/employees/create`,
         null,
         {
-          params: { name, country, location_id, phone, email },
+          params: { name, country, location_id, phone, email, role },
         },
       );
       return response.data;

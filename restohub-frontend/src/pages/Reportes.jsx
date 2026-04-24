@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@apollo/client/react";
 import { MONTHLY_REPORT } from "../graphql/reportes";
-import { GET_LOCATIONS, GET_COUNTRIES } from "../graphql/location";
+import { GET_LOCATIONS, GET_COUNTRIES, GET_USERS } from "../graphql/location";
 import { useAuth } from "../context/AuthContext";
 
 const YEARS = Array.from({ length: 4 }, (_, i) => new Date().getFullYear() - i);
@@ -315,16 +315,51 @@ export default function Reportes() {
   const [filterYear, setFilterYear] = useState("todos");
 
   const { user } = useAuth();
-  const locationId = user?.locationId ? parseInt(user.locationId) : null;
+  const isAdmin = user?.role === "admin";
+  const isManager = user?.role === "general_manager";
+
+  const [selectedBranch, setSelectedBranch] = useState(isAdmin ? user?.locationId : "all");
 
   const { data: locationsData } = useQuery(GET_LOCATIONS);
   const { data: countriesData } = useQuery(GET_COUNTRIES);
+  const { data: usersData } = useQuery(GET_USERS, { skip: !isManager });
+
+  const [selectedCountry, setSelectedCountry] = useState(null);
+
+  useMemo(() => {
+    if (isManager && !selectedCountry && countriesData?.countries?.length > 0) {
+      setSelectedCountry(countriesData.countries[0].id);
+    }
+  }, [isManager, selectedCountry, countriesData]);
+
+  const locationsInCountry = useMemo(() => {
+    if (!locationsData?.locations) return [];
+    if (!isManager) return locationsData.locations;
+    return locationsData.locations.filter((l) => String(l.countryId) === String(selectedCountry));
+  }, [locationsData, selectedCountry, isManager]);
+
+  const getRestaurantIdsForQuery = () => {
+    if (!isManager) return String(user?.locationId);
+    if (selectedBranch === "all") {
+      const ids = locationsInCountry.map((l) => l.id).join(",");
+      return ids || "NONE";
+    }
+    return String(selectedBranch);
+  };
 
   const sedeActual = locationsData?.locations?.find(
-    (l) => String(l.id) === String(locationId)
+    (l) => String(l.id) === String(isManager ? selectedBranch : user?.locationId)
   );
   const paisActual = countriesData?.countries?.find(
-    (c) => String(c.id) === String(sedeActual?.countryId)
+    (c) => String(c.id) === String(isManager ? selectedCountry : sedeActual?.countryId)
+  );
+
+  const selectedLocation = locationsData?.locations?.find(
+    (l) => String(l.id) === String(selectedBranch)
+  );
+
+  const branchAdmin = usersData?.users?.find(
+    (u) => String(u.locationId) === String(selectedBranch) && u.role === "admin"
   );
 
   const formatCurrency = (val) => {
@@ -346,7 +381,11 @@ export default function Reportes() {
   };
 
   const { data, loading, error } = useQuery(MONTHLY_REPORT, {
-    variables: { fromYear, toYear },
+    variables: { 
+      fromYear, 
+      toYear,
+      restaurant_id: getRestaurantIdsForQuery()
+    },
     fetchPolicy: "cache-and-network",
   });
 
@@ -407,6 +446,21 @@ export default function Reportes() {
     return [...new Set(allYears)].sort((a, b) => b - a);
   }, [data]);
 
+  let headerTitle = "📊 Reportes Mensuales";
+  let headerSubtitle = "Ingresos y pedidos por período — Orders + POS";
+
+  if (isAdmin) {
+    headerTitle = `Sede administrada por ${user?.firstName} ${user?.lastName} - ${sedeActual?.name || ""}`;
+  } else if (isManager) {
+    const countryName = paisActual?.name || "Desconocido";
+    if (selectedBranch === "all") {
+      headerTitle = `Reporte General - País: ${countryName} (Consolidado de Sedes)`;
+    } else {
+      const adminName = branchAdmin ? `${branchAdmin.firstName} ${branchAdmin.lastName}` : "Sin administrador asignado";
+      headerTitle = `País: ${countryName} | Sede administrada por ${adminName} - ${selectedLocation?.name || ""}`;
+    }
+  }
+
   return (
     <div
       style={{
@@ -436,10 +490,10 @@ export default function Reportes() {
               color: "#1a1a2e",
             }}
           >
-            📊 Reportes Mensuales
+            {headerTitle}
           </h1>
           <p style={{ margin: "2px 0 0", fontSize: 13, color: "#5f6368" }}>
-            Ingresos y pedidos por período — Orders + POS
+            {headerSubtitle}
           </p>
         </div>
 
@@ -451,6 +505,59 @@ export default function Reportes() {
             flexWrap: "wrap",
           }}
         >
+          {isManager && (
+            <>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 13, color: "#5f6368" }}>País:</label>
+                <select
+                  value={selectedCountry || ""}
+                  onChange={(e) => {
+                    setSelectedCountry(e.target.value);
+                    setSelectedBranch("all");
+                  }}
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #dadce0",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    background: "#fff",
+                    color: "#1a1a2e",
+                    cursor: "pointer",
+                  }}
+                >
+                  {countriesData?.countries?.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <label style={{ fontSize: 13, color: "#5f6368" }}>Sede:</label>
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  style={{
+                    padding: "6px 12px",
+                    border: "1px solid #dadce0",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    background: "#fff",
+                    color: "#1a1a2e",
+                    cursor: "pointer",
+                  }}
+                >
+                  <option value="all">Todas las sedes (Consolidado)</option>
+                  {locationsInCountry.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
+
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <label style={{ fontSize: 13, color: "#5f6368" }}>Desde:</label>
             <select

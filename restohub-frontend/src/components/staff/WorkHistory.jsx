@@ -1,6 +1,8 @@
 import { useAuth } from "../../context/AuthContext";
 import { useQuery } from "@apollo/client/react";
 import { GET_STAFF_DATA } from "../../graphql/staffOperations";
+import { CreditCard, ChefHat } from "lucide-react";
+
 
 const WorkHistory = () => {
   const { user } = useAuth();
@@ -22,6 +24,17 @@ const WorkHistory = () => {
     if (h === 0) return `${m}m`;
     if (m === 0) return `${h}h`;
     return `${h}h ${m}m`;
+  };
+
+  // Convierte tiempo UTC almacenado ("HH:MM:SS") + fecha ("YYYY-MM-DD") al horario local del navegador
+  const formatUTCToLocal = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return "--:--";
+    try {
+      const utc = new Date(`${dateStr}T${timeStr}Z`);
+      return utc.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: true });
+    } catch {
+      return timeStr.slice(0, 5);
+    }
   };
 
   if (loading)
@@ -80,6 +93,7 @@ const WorkHistory = () => {
         <thead style={{ backgroundColor: "#f9fafb" }}>
           <tr>
             <th style={tableHeaderStyle}>Empleado</th>
+            <th style={tableHeaderStyle}>Rol</th>
             <th style={tableHeaderStyle}>Fecha</th>
             <th style={tableHeaderStyle}>Entrada / Salida</th>
             <th style={tableHeaderStyle}>Horas Trabajadas</th>
@@ -90,9 +104,35 @@ const WorkHistory = () => {
           {history.map((h) => (
             <tr key={h.id}>
               <td style={{ ...cellStyle, fontWeight: "600" }}>{h.emp_name}</td>
+              <td style={cellStyle}>
+                {(() => {
+                  const r = h.role ?? "cajero";
+                  const isCajero = r === "cajero";
+                  return (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "4px",
+                        padding: "2px 8px",
+                        borderRadius: "9999px",
+                        fontSize: "0.72rem",
+                        fontWeight: "700",
+                        backgroundColor: isCajero ? "#dbeafe" : "#ffedd5",
+                        color: isCajero ? "#1d4ed8" : "#c2410c",
+                      }}
+                    >
+                      {isCajero
+                        ? <CreditCard size={11} />
+                        : <ChefHat size={11} />}
+                      {isCajero ? "Cajero" : "Cocinero"}
+                    </span>
+                  );
+                })()}
+              </td>
               <td style={cellStyle}>{h.date}</td>
               <td style={cellStyle}>
-                {h.start_time} - {h.end_time || "--:--"}
+                {formatUTCToLocal(h.date, h.start_time)} — {h.end_time ? formatUTCToLocal(h.date, h.end_time) : "--:--"}
               </td>
               <td style={cellStyle}>{formatHoursToHM(h.hours_worked)}</td>
               <td

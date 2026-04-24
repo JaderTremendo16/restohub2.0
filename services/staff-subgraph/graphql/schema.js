@@ -11,6 +11,7 @@ const typeDefs = gql`
     active: Boolean!
     base_hours: Int!
     qr_code: String!
+    role: String!
   }
 
   type ActiveStaff {
@@ -40,6 +41,7 @@ const typeDefs = gql`
     base_hours: Int!
     overtime_hours: Float!
     location_id: Int!
+    role: String
   }
 
   type Query {
@@ -60,6 +62,7 @@ const typeDefs = gql`
       location_id: Int
       phone: String
       email: String
+      role: String!
     ): Employee!
 
     # Escaneo de asistencia (POST /attendance/scan/{id})

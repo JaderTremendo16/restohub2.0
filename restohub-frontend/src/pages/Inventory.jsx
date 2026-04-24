@@ -1089,7 +1089,7 @@ function SeccionPedidos({
   );
 }
 
-function SeccionUmbralMinimo({ locationId, ingredients }) {
+function SeccionUmbralMinimo({ locationId, ingredients, stocks }) {
   const [form, setForm] = useState({
     ingredient_id: "",
     min_threshold: "",
@@ -1220,11 +1220,15 @@ function SeccionUmbralMinimo({ locationId, ingredients }) {
           style={{ ...inputStyle, flex: 2, minWidth: "150px" }}
         >
           <option value="">Seleccionar ingrediente</option>
-          {ingredients?.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.name}
-            </option>
-          ))}
+          {ingredients
+            ?.filter((i) =>
+              stocks?.some((s) => String(s.ingredient_id) === String(i.id)),
+            )
+            .map((i) => (
+              <option key={i.id} value={i.id}>
+                {i.name}
+              </option>
+            ))}
         </select>
         <input
           type="number"
@@ -1561,6 +1565,7 @@ function Inventory() {
       <SeccionUmbralMinimo
         locationId={locationId}
         ingredients={ingredientsData?.ingredients ?? []}
+        stocks={stocksData?.stocks ?? []}
       />
 
       {/* CAMBIO: pasamos locationId para que SeccionPedidos filtre correctamente */}

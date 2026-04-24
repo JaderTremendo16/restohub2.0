@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@apollo/client/react";
 import { GET_COUNTRIES, GET_LOCATIONS } from "../../graphql/location";
 import { useAuth } from "../../context/AuthContext";
+import { CreditCard, ChefHat } from "lucide-react";
 
 const inputStyle = {
   width: "100%",
@@ -25,6 +26,7 @@ const labelStyle = {
 
 const CreateEmployee = ({ createEmployee, creating }) => {
   const [name, setName] = useState("");
+  const [role, setRole] = useState("cajero");
   const { user } = useAuth(); // Obtenemos el usuario para saber su sede/país
 
   const { data: locationsData } = useQuery(GET_LOCATIONS);
@@ -60,10 +62,12 @@ const CreateEmployee = ({ createEmployee, creating }) => {
         Number(user.locationId),
         phone,
         email,
+        role,
       );
       setName("");
       setPhone("");
       setEmail("");
+      setRole("cajero");
     } catch (e) {
       alert(e.message);
     }
@@ -112,8 +116,10 @@ const CreateEmployee = ({ createEmployee, creating }) => {
           <label style={labelStyle}>Teléfono</label>
           <input
             value={phone}
-            onChange={(e) => setPhone(e.target.value)}
+            onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
             placeholder="Ej: 123456789"
+            inputMode="numeric"
+            maxLength={15}
             style={inputStyle}
           />
         </div>
@@ -142,6 +148,34 @@ const CreateEmployee = ({ createEmployee, creating }) => {
             }}
           >
             🌍 {paisActual?.name || "No asignado"}
+          </div>
+        </div>
+
+        {/* Rol del empleado */}
+        <div style={{ flex: 1, minWidth: "140px" }}>
+          <label style={labelStyle}>Rol *</label>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{
+              color: role === "cajero" ? "#1d4ed8" : "#c2410c",
+              display: "flex",
+              alignItems: "center",
+            }}>
+              {role === "cajero" ? <CreditCard size={16} /> : <ChefHat size={16} />}
+            </span>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              style={{
+                ...inputStyle,
+                flex: 1,
+                borderColor: role === "cajero" ? "#3b82f6" : "#f97316",
+                color: role === "cajero" ? "#1d4ed8" : "#c2410c",
+                fontWeight: "600",
+              }}
+            >
+              <option value="cajero">Cajero</option>
+              <option value="cocinero">Cocinero</option>
+            </select>
           </div>
         </div>
 

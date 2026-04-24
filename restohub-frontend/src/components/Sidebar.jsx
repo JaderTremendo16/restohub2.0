@@ -111,7 +111,7 @@ function Sidebar() {
           label: "Reportes",
           path: "/reportes",
           icon: <FileText size={18} />,
-          roles: ["admin"],
+          roles: ["admin", "general_manager"],
         },
       ],
     },

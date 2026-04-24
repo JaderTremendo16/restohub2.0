@@ -15,6 +15,10 @@ import {
   CONFIRM_POS_ORDER,
 } from "../graphql/pos";
 import { GET_LOCATIONS, GET_COUNTRIES } from "../graphql/location";
+import {
+  Monitor, Search, User, Armchair, Clock,
+  ShoppingCart, RefreshCw, LogOut, ChefHat
+} from "lucide-react";
 
 const STATUS_COLORS = {
   open: "#fff3e0",
@@ -498,7 +502,9 @@ export default function PosDashboard() {
     return (
       <div style={s.loginWrap}>
         <div style={s.loginBox}>
-          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🖥️</div>
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
+            <Monitor size={48} color="#f4511e" strokeWidth={1.5} />
+          </div>
           <h2 style={s.loginTitle}>Punto de Venta</h2>
           <p
             style={{
@@ -553,7 +559,10 @@ export default function PosDashboard() {
       {/* Header */}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>🖥️ POS — Punto de Venta</h1>
+          <h1 style={s.title}>
+            <Monitor size={22} style={{ display: "inline", verticalAlign: "middle", marginRight: 8, color: "#f4511e" }} />
+            POS — Punto de Venta
+          </h1>
           <span style={s.sub}>
             Cajero: {cashierName} · {stats.active} pedidos activos
           </span>
@@ -618,7 +627,7 @@ export default function PosDashboard() {
             </div>
 
             <div style={s.searchWrap}>
-              <span style={{ marginRight: "8px" }}>🔍</span>
+              <Search size={15} style={{ marginRight: 8, color: "#aaa", flexShrink: 0 }} />
               <input
                 style={s.searchInput}
                 placeholder="Buscar ID, cliente..."
@@ -731,9 +740,12 @@ export default function PosDashboard() {
                     fontWeight: "700",
                     fontSize: "0.95rem",
                     marginBottom: "4px",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
                   }}
                 >
-                  👤 {order.customer_name}
+                  <User size={13} /> {order.customer_name}
                 </p>
               )}
 
@@ -745,7 +757,9 @@ export default function PosDashboard() {
                 }}
               >
                 {order.table_ref && (
-                  <p style={s.cardInfo}>🪑 Mesa {order.table_ref}</p>
+                  <p style={{ ...s.cardInfo, display: "flex", alignItems: "center", gap: 4 }}>
+                    <Armchair size={13} /> Mesa {order.table_ref}
+                  </p>
                 )}
                 <p
                   style={{
@@ -767,9 +781,12 @@ export default function PosDashboard() {
                   marginTop: "4px",
                   borderTop: "1px solid #f8f9fa",
                   paddingTop: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
                 }}
               >
-                🕐{" "}
+                <Clock size={12} />
                 {new Date(order.created_at).toLocaleDateString() ===
                   new Date().toLocaleDateString()
                   ? new Date(order.created_at).toLocaleTimeString([], {
@@ -791,7 +808,7 @@ export default function PosDashboard() {
         <div style={s.detail}>
           {!selectedOrder ? (
             <div style={s.emptyDetail}>
-              <p style={{ fontSize: "3rem" }}>🖥️</p>
+              <Monitor size={56} color="#e0e0e0" strokeWidth={1} style={{ marginBottom: "0.5rem" }} />
               <p>Selecciona o crea un pedido</p>
             </div>
           ) : (

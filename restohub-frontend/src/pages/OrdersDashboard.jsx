@@ -18,6 +18,14 @@ import {
   CREATE_PAYMENT,
 } from "../graphql/orders";
 import { GET_LOCATIONS } from "../graphql/location";
+import {
+  Flame, Salad, Wine, Bike,
+  ClipboardList, RefreshCw, Store,
+  User, Smartphone, MapPin, FileText,
+  CheckCircle, CheckCircle2, XCircle,
+  Package, ChefHat, Truck,
+  ReceiptText, CreditCard, ListOrdered
+} from "lucide-react";
 
 // ───────────────── CONFIG ─────────────────
 const STATUS_COLORS = {
@@ -54,10 +62,17 @@ const PRIORITY_TEXT = { low: "#757575", normal: "#1976d2", high: "#ef6c00" };
 const PRIORITY_LABELS = { low: "↓ Baja", normal: "→ Normal", high: "↑ Alta" };
 
 const AREA_LABELS = {
-  hot_kitchen: "🔥 Cocina Caliente",
-  cold_kitchen: "🥗 Cocina Fría",
-  bar: "🍹 Bar / Bebidas",
-  delivery: "🛵 Domicilios",
+  hot_kitchen: "Cocina Caliente",
+  cold_kitchen: "Cocina Fría",
+  bar: "Bar / Bebidas",
+  delivery: "Domicilios",
+};
+
+const AREA_ICONS = {
+  hot_kitchen: <Flame size={13} />,
+  cold_kitchen: <Salad size={13} />,
+  bar: <Wine size={13} />,
+  delivery: <Bike size={13} />,
 };
 
 const ORDER_ALLOWED_TRANSITIONS = {
@@ -940,12 +955,12 @@ function OrderCard({
       </div>
 
       <p style={s.info}>
-        <span style={{ opacity: 0.7 }}>🏪</span> <LocationName locationId={order.restaurant_id} locations={locations} /> ·{" "}
-        <span style={{ opacity: 0.7 }}>👤</span> <CustomerName customerId={order.customer_id} />
+        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><Store size={13} /></span> <LocationName locationId={order.restaurant_id} locations={locations} /> ·{" "}
+        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><User size={13} /></span> <CustomerName customerId={order.customer_id} />
       </p>
       <p style={s.info}>
-        <span style={{ opacity: 0.7 }}>📱</span> {order.channel} ·{" "}
-        <span style={{ opacity: 0.7 }}>📍</span> {AREA_LABELS[order.area] || order.area || "—"}
+        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><Smartphone size={13} /></span> {order.channel} ·{" "}
+        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><MapPin size={13} /></span> {AREA_LABELS[order.area] ? <>{AREA_ICONS[order.area]} {AREA_LABELS[order.area]}</> : order.area || "—"}
       </p>
       {order.notes && <p style={s.info}>📝 {order.notes}</p>}
       <LiveTimer order={order} />
@@ -967,7 +982,7 @@ function OrderCard({
                 style={s.btnSm}
                 onClick={() => onOpenModal("invoice", order)}
               >
-                🧾 Factura
+                <ReceiptText size={13} style={{ verticalAlign: 'middle', marginRight: '3px' }} /> Factura
               </button>
             )}
 
@@ -976,12 +991,12 @@ function OrderCard({
                 style={s.btnSm}
                 onClick={() => onOpenModal("payment", order)}
               >
-                💳 Pago
+                <CreditCard size={13} style={{ verticalAlign: 'middle', marginRight: '3px' }} /> Pago
               </button>
             )}
 
             <button style={s.btnSm} onClick={() => onOpenModal("items", order)}>
-              📋 Ver ítems
+              <ListOrdered size={13} style={{ verticalAlign: 'middle', marginRight: '3px' }} /> Ver ítems
             </button>
           </div>
 
@@ -1060,7 +1075,15 @@ export default function OrdersDashboard() {
     skip: !locationId,
   });
 
-  const paidInvoices = invoicesData?.paidInvoices || [];
+  const rawOrdersAll = data?.orders || [];
+  const rawInvoices = invoicesData?.paidInvoices || [];
+  const paidInvoices = rawInvoices.filter(inv => {
+    if (!locationId) return true;
+    const relatedOrder = rawOrdersAll.find(o => String(o.id) === String(inv.order_id));
+    return relatedOrder && String(relatedOrder.restaurant_id) === String(locationId);
+  });
+  
+  const myLocationName = locationsData?.locations?.find(loc => String(loc.id) === String(locationId))?.name || (locationId ? "Sede ID " + locationId : "Todas las Sedes");
 
   const [createOrder] = useMutation(CREATE_ORDER);
   const [addItems] = useMutation(ADD_ITEMS);
@@ -1167,7 +1190,12 @@ export default function OrdersDashboard() {
     }
   };
 
-  const orders = data?.orders || [];
+  const rawOrders = data?.orders || [];
+  
+  const orders = rawOrders.filter(o => {
+    if (!locationId) return true;
+    return String(o.restaurant_id) === String(locationId);
+  });
 
   const filtered =
     filterStatus === "all"
@@ -1204,25 +1232,25 @@ export default function OrdersDashboard() {
         <div>
           <h1 style={s.title}>Dashboard de Órdenes</h1>
           <span style={s.subtitle}>
-            {orders.length} pedidos · {filtered.length} visibles
+            {orders.length} pedidos · {filtered.length} visibles · Sede: {myLocationName}
           </span>
         </div>
 
         <div style={{ display: "flex", gap: "1rem" }}>
           <button
-            style={{ ...s.btnSecondary, background: "#f8f9fa", border: "1px solid #ddd" }}
+            style={{ ...s.btnSecondary, background: "#f8f9fa", border: "1px solid #ddd", display: "flex", alignItems: "center", gap: "0.4rem" }}
             onClick={() => setModal({ type: "history" })}
           >
-            📟 Historial Facturas
+            <ClipboardList size={15} /> Historial Facturas
           </button>
           <button
-            style={{ ...s.btnSecondary, background: "#e3f2fd", color: "#1976d2", border: "1px solid #bbdefb" }}
+            style={{ ...s.btnSecondary, background: "#e3f2fd", color: "#1976d2", border: "1px solid #bbdefb", display: "flex", alignItems: "center", gap: "0.4rem" }}
             onClick={() => {
               refetch();
               showMsg("Sincronizado");
             }}
           >
-            🔄 Sincronizar
+            <RefreshCw size={15} /> Sincronizar
           </button>
         </div>
       </div>

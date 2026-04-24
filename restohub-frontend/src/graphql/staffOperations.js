@@ -12,8 +12,9 @@ export const GET_STAFF_DATA = gql`
       active
       base_hours
       qr_code
+      role
     }
-    activeStaff(location_id: $location_id) {
+    activeStaff {
       id
       name
       start
@@ -30,6 +31,7 @@ export const GET_STAFF_DATA = gql`
       hours_worked
       base_hours
       overtime_hours
+      role
     }
   }
 `;
@@ -41,6 +43,7 @@ export const CREATE_EMPLOYEE = gql`
     $location_id: Int
     $phone: String
     $email: String
+    $role: String!
   ) {
     createEmployee(
       name: $name
@@ -48,9 +51,11 @@ export const CREATE_EMPLOYEE = gql`
       location_id: $location_id
       phone: $phone
       email: $email
+      role: $role
     ) {
       id
       name
+      role
     }
   }
 `;

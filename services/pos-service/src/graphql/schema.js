@@ -82,7 +82,7 @@ const typeDefs = gql`
     posOrder(id: ID!): PosOrder
     calculateChange(total: Float!, amount_received: Float!): ChangeCalculation!
     posInvoice(id: ID!): PosInvoice
-    posMonthlyReport(fromYear: Int, toYear: Int): [PosMonthlyReport!]!
+    posMonthlyReport(fromYear: Int, toYear: Int, restaurant_id: String): [PosMonthlyReport!]!
   }
 
   type Mutation {

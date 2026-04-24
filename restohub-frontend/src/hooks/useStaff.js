@@ -16,9 +16,9 @@ export const useStaff = (locationId) => {
   const [toggleStatusMutation] = useMutation(TOGGLE_STATUS);
   const [scanQRMutation] = useMutation(SCAN_QR);
 
-  const createEmployee = async (name, country, location_id, phone, email) => {
+  const createEmployee = async (name, country, location_id, phone, email, role) => {
     await createEmployeeMutation({
-      variables: { name, country, location_id, phone, email },
+      variables: { name, country, location_id, phone, email, role },
     });
     await refetch();
   };

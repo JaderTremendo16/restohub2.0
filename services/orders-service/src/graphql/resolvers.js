@@ -116,13 +116,12 @@ const resolvers = {
       }));
     },
 
-    monthlyReport: async (_, { fromYear, toYear }) => {
+    monthlyReport: async (_, { fromYear, toYear, restaurant_id }) => {
       const currentYear = new Date().getFullYear();
       const from = fromYear || currentYear - 1;
       const to = toYear || currentYear;
 
-      const result = await db.raw(
-        `
+      let query = `
         SELECT
           EXTRACT(YEAR  FROM o.created_at)::int AS year,
           EXTRACT(MONTH FROM o.created_at)::int AS month,
@@ -132,11 +131,21 @@ const resolvers = {
         LEFT JOIN invoices i ON i.order_id = o.id
         WHERE o.status = 'delivered'
           AND EXTRACT(YEAR FROM o.created_at) BETWEEN ? AND ?
+      `;
+      const params = [from, to];
+
+      if (restaurant_id) {
+        const ids = restaurant_id.split(',').map(id => id.trim());
+        query += ` AND o.restaurant_id IN (${ids.map(() => '?').join(',')})`;
+        params.push(...ids);
+      }
+
+      query += `
         GROUP BY year, month
         ORDER BY year, month
-      `,
-        [from, to],
-      );
+      `;
+
+      const result = await db.raw(query, params);
 
       return result.rows.map((r) => ({
         year: r.year,

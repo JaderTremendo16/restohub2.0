@@ -101,7 +101,7 @@ const typeDefs = gql`
     orderInvoice(order_id: ID!): Invoice
     orderPayment(order_id: ID!): Payment
     orderTiming(id: ID!): OrderTiming
-    monthlyReport(fromYear: Int, toYear: Int): [MonthlyReport!]!
+    monthlyReport(fromYear: Int, toYear: Int, restaurant_id: String): [MonthlyReport!]!
     paidInvoices: [PaidInvoice!]!
   }
 
