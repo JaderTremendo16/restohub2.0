@@ -32,6 +32,7 @@ class EmployeeDB(Base):
     active = Column(Boolean, default=True)
     base_hours = Column(Integer, default=8)
     qr_code = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="cajero")
 
 
 # --- NUEVO MODELO: HISTORIAL DE TURNOS ---
@@ -47,6 +48,7 @@ class WorkShift(Base):
     hours_worked = Column(Float, nullable=False)
     base_hours = Column(Integer, default=8)
     overtime_hours = Column(Float, default=0.0)  # Horas extras (>= 0)
+    role = Column(String, nullable=False, default="cajero")
 
 
 # Crear las tablas si no existen
@@ -88,6 +90,7 @@ def emp_to_dict(e: EmployeeDB) -> dict:
         "active": e.active,
         "base_hours": e.base_hours,
         "qr_code": e.qr_code,
+        "role": e.role,
     }
 
 
@@ -111,9 +114,13 @@ def create_employee(
     location_id: int = None,
     phone: str = None,
     email: str = None,
+    role: str = "cajero",
     db: Session = Depends(get_db),
 ):
     """Crea un empleado, genera su QR fijo y asigna las 8h por defecto"""
+    if role not in ("cajero", "cocinero"):
+        raise HTTPException(status_code=400, detail="Rol inválido. Use 'cajero' o 'cocinero'.")
+
     last = db.query(EmployeeDB).order_by(EmployeeDB.id.desc()).first()
     new_id = (last.id + 1) if last else 1
 
@@ -133,6 +140,7 @@ def create_employee(
         active=True,
         base_hours=8,
         qr_code=qr_b64,
+        role=role,
     )
     db.add(new_emp)
     db.commit()
@@ -184,6 +192,7 @@ def scan_attendance(emp_id: int, db: Session = Depends(get_db)):
             hours_worked=hours_worked,
             base_hours=emp.base_hours,
             overtime_hours=overtime,
+            role=emp.role,
         )
         db.add(shift)
         db.commit()
