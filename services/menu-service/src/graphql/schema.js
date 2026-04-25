@@ -65,11 +65,18 @@ const typeDefs = gql`
   }
 
 
+  type CloudinaryImage {
+    public_id: String!
+    url: String!
+    secure_url: String!
+  }
+
   type Query {
     dishes(OnlyActive: Boolean, location_id: Int, onlyGlobal: Boolean): [Dish!]!
     dish(id: ID!): Dish
     DishIngredients(dish_id: ID!): [DishIngredient!]!
     menuPrices(dish_id: ID!): [MenuPrice!]!
+    cloudinaryImages: [CloudinaryImage!]!
   }
 
   type Mutation {
@@ -84,6 +91,8 @@ const typeDefs = gql`
 
     createMenuPrice(input: CreateMenuPriceInput!): MenuPrice!
     updateMenuPrice(id: ID!, input: UpdateMenuPriceInput!): MenuPrice!
+
+    deleteCloudinaryImage(public_id: String!): Boolean!
   }
 
   input CreateDishInput {

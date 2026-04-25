@@ -13,8 +13,10 @@ import {
   UPDATE_MENU_PRICE,
   GET_DISH_INGREDIENTS,
   GET_MENU_PRICES,
+  DELETE_CLOUDINARY_IMAGE,
 } from "../graphql/menu";
 import { GET_INGREDIENTS, CREATE_INGREDIENT } from "../graphql/ingredients";
+import CloudinaryGallery from "../components/CloudinaryGallery";
 import { GET_INGREDIENT_COSTS } from "../graphql/menu";
 import { useAuth } from "../context/AuthContext";
 import { Search, ShoppingBag, Calculator, Info } from "lucide-react";
@@ -101,6 +103,30 @@ function ModalNuevoPlato({ onClose, onCreated }) {
   });
 
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+
+  const [deleteCloudinaryImage] = useMutation(DELETE_CLOUDINARY_IMAGE);
+
+  const handleDeleteImage = async () => {
+    if (!form.image_url) return;
+
+    const confirmDelete = window.confirm("¿Deseas eliminar la foto solo de este plato (Cancelar) o también borrarla definitivamente de la nube (Aceptar)?\n\nAceptar = Borrar de la nube y del plato\nCancelar = Solo quitar del plato");
+
+    if (confirmDelete) {
+      try {
+        const parts = form.image_url.split('/');
+        const filename = parts[parts.length - 1];
+        const publicId = filename.split('.')[0];
+        
+        await deleteCloudinaryImage({ variables: { public_id: publicId } });
+        alert("Imagen borrada de la nube.");
+      } catch (e) {
+        alert("Error borrando de la nube: " + e.message);
+      }
+    }
+    
+    setForm({ ...form, image_url: "" });
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -234,7 +260,7 @@ function ModalNuevoPlato({ onClose, onCreated }) {
                   />
                   <button
                     type="button"
-                    onClick={() => setForm({ ...form, image_url: "" })}
+                    onClick={handleDeleteImage}
                     style={{
                       position: "absolute",
                       top: -8,
@@ -257,17 +283,35 @@ function ModalNuevoPlato({ onClose, onCreated }) {
                   </button>
                 </div>
               ) : null}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={uploadingImage}
-                style={{
-                  ...inputStyle,
-                  flex: 1,
-                  padding: "0.4rem",
-                }}
-              />
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  style={{
+                    ...inputStyle,
+                    padding: "0.4rem",
+                    marginBottom: 0
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowGallery(true)}
+                  style={{
+                    padding: "0.4rem",
+                    backgroundColor: "#f1f5f9",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "0.5rem",
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                    color: "#475569",
+                    fontWeight: "600"
+                  }}
+                >
+                  🖼️ Elegir de Galería
+                </button>
+              </div>
             </div>
             {uploadingImage && (
               <p
@@ -314,6 +358,16 @@ function ModalNuevoPlato({ onClose, onCreated }) {
           </button>
         </div>
       </div>
+      
+      {showGallery && (
+        <CloudinaryGallery 
+          onClose={() => setShowGallery(false)} 
+          onSelect={(url) => {
+            setForm({ ...form, image_url: url });
+            setShowGallery(false);
+          }} 
+        />
+      )}
     </div>
   );
 }
@@ -338,11 +392,68 @@ function PanelDetalle({
     "Otros",
   ];
   const [editando, setEditando] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+  const [deleteCloudinaryImage] = useMutation(DELETE_CLOUDINARY_IMAGE);
+
   const [editForm, setEditForm] = useState({
     name: dish.name,
     description: dish.description ?? "",
     category: dish.category,
+    image_url: dish.image_url ?? "",
   });
+
+  const handleDeleteImage = async () => {
+    if (!editForm.image_url) return;
+    const confirmDelete = window.confirm("¿Deseas eliminar la foto solo de este plato (Cancelar) o también borrarla definitivamente de la nube (Aceptar)?\n\nAceptar = Borrar de la nube y del plato\nCancelar = Solo quitar del plato");
+    if (confirmDelete) {
+      try {
+        const parts = editForm.image_url.split('/');
+        const filename = parts[parts.length - 1];
+        const publicId = filename.split('.')[0];
+        await deleteCloudinaryImage({ variables: { public_id: publicId } });
+        alert("Imagen borrada de la nube.");
+      } catch (e) {
+        alert("Error borrando de la nube: " + e.message);
+      }
+    }
+    setEditForm({ ...editForm, image_url: "" });
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      alert("Faltan credenciales de Cloudinary en el archivo .env");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", uploadPreset);
+
+    setUploadingImage(true);
+    try {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: data,
+      });
+      const result = await res.json();
+      if (result.secure_url) {
+        setEditForm({ ...editForm, image_url: result.secure_url });
+      } else {
+        alert("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
+      }
+    } catch (error) {
+      alert("Error al subir la imagen: " + error.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const [ingForm, setIngForm] = useState({
     nombre: "",
@@ -879,6 +990,92 @@ function PanelDetalle({
                   ))}
                 </select>
               </div>
+              
+              <div>
+                <label style={labelStyle}>Imagen del plato (Opcional)</label>
+                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                  {editForm.image_url ? (
+                    <div style={{ position: "relative", flexShrink: 0 }}>
+                      <img
+                        src={editForm.image_url}
+                        alt="Preview"
+                        style={{
+                          width: "64px",
+                          height: "64px",
+                          objectFit: "cover",
+                          borderRadius: "0.5rem",
+                          border: "1px solid #e5e7eb",
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleDeleteImage}
+                        style={{
+                          position: "absolute",
+                          top: -8,
+                          right: -8,
+                          background: "#ef4444",
+                          color: "white",
+                          borderRadius: "50%",
+                          width: 24,
+                          height: 24,
+                          border: "none",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.8rem",
+                          padding: 0,
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ) : null}
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      style={{
+                        ...inputStyle,
+                        padding: "0.4rem",
+                        marginBottom: 0
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowGallery(true)}
+                      style={{
+                        padding: "0.4rem",
+                        backgroundColor: "#f1f5f9",
+                        border: "1px solid #cbd5e1",
+                        borderRadius: "0.5rem",
+                        fontSize: "0.8rem",
+                        cursor: "pointer",
+                        color: "#475569",
+                        fontWeight: "600"
+                      }}
+                    >
+                      🖼️ Elegir de Galería
+                    </button>
+                  </div>
+                </div>
+                {uploadingImage && (
+                  <p
+                    style={{
+                      fontSize: "0.75rem",
+                      color: "#ea580c",
+                      marginTop: "0.4rem",
+                      margin: 0,
+                    }}
+                  >
+                    Subiendo imagen a la nube...
+                  </p>
+                )}
+              </div>
+
               <button
                 onClick={handleGuardarEdicion}
                 disabled={loadingUpdate}
@@ -1190,6 +1387,16 @@ function PanelDetalle({
           )}
         </div>
       </div>
+      
+      {showGallery && (
+        <CloudinaryGallery 
+          onClose={() => setShowGallery(false)} 
+          onSelect={(url) => {
+            setEditForm({ ...editForm, image_url: url });
+            setShowGallery(false);
+          }} 
+        />
+      )}
     </>
   );
 }

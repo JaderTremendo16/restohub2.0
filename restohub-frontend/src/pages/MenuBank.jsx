@@ -10,8 +10,10 @@ import {
   REMOVE_DISH_INGREDIENT,
   UPDATE_DISH_INGREDIENT,
   GET_DISH_INGREDIENTS,
+  DELETE_CLOUDINARY_IMAGE,
 } from "../graphql/menu";
 import { GET_INGREDIENTS, CREATE_INGREDIENT } from "../graphql/ingredients";
+import CloudinaryGallery from "../components/CloudinaryGallery";
 import {
   Plus,
   Search,
@@ -102,6 +104,32 @@ function DishEditorModal({ dish, onClose, onSaved }) {
   );
 
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [showGallery, setShowGallery] = useState(false);
+
+  const [deleteCloudinaryImage] = useMutation(DELETE_CLOUDINARY_IMAGE);
+
+  const handleDeleteImage = async () => {
+    if (!form.image_url) return;
+
+    const confirmDelete = window.confirm("¿Deseas eliminar la foto solo de este plato (Cancelar) o también borrarla definitivamente de la nube (Aceptar)?\n\nAceptar = Borrar de la nube y del plato\nCancelar = Solo quitar del plato");
+
+    if (confirmDelete) {
+      try {
+        // Extract public_id from cloudinary URL
+        // Example: https://res.cloudinary.com/demo/image/upload/v1234/sample.jpg -> sample
+        const parts = form.image_url.split('/');
+        const filename = parts[parts.length - 1];
+        const publicId = filename.split('.')[0];
+        
+        await deleteCloudinaryImage({ variables: { public_id: publicId } });
+        alert("Imagen borrada de la nube.");
+      } catch (e) {
+        alert("Error borrando de la nube: " + e.message);
+      }
+    }
+    
+    setForm({ ...form, image_url: "" });
+  };
 
   const handleImageUpload = async (e) => {
     const file = e.target.files[0];
@@ -240,7 +268,7 @@ function DishEditorModal({ dish, onClose, onSaved }) {
                   />
                   <button
                     type="button"
-                    onClick={() => setForm({ ...form, image_url: "" })}
+                    onClick={handleDeleteImage}
                     style={{
                       position: "absolute",
                       top: -8,
@@ -263,17 +291,35 @@ function DishEditorModal({ dish, onClose, onSaved }) {
                   </button>
                 </div>
               ) : null}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageUpload}
-                disabled={uploadingImage}
-                style={{
-                  ...inputStyle,
-                  flex: 1,
-                  padding: "0.4rem",
-                }}
-              />
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImage}
+                  style={{
+                    ...inputStyle,
+                    padding: "0.4rem",
+                    marginBottom: 0
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowGallery(true)}
+                  style={{
+                    padding: "0.4rem",
+                    backgroundColor: "#f1f5f9",
+                    border: "1px solid #cbd5e1",
+                    borderRadius: "0.5rem",
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                    color: "#475569",
+                    fontWeight: "600"
+                  }}
+                >
+                  🖼️ Elegir de Galería
+                </button>
+              </div>
             </div>
             {uploadingImage && (
               <p
@@ -369,6 +415,16 @@ function DishEditorModal({ dish, onClose, onSaved }) {
           </button>
         </div>
       </div>
+      
+      {showGallery && (
+        <CloudinaryGallery 
+          onClose={() => setShowGallery(false)} 
+          onSelect={(url) => {
+            setForm({ ...form, image_url: url });
+            setShowGallery(false);
+          }} 
+        />
+      )}
     </div>
   );
 }

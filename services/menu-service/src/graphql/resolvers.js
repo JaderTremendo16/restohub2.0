@@ -1,4 +1,11 @@
 import database from "../database/knex.js";
+import { v2 as cloudinary } from "cloudinary";
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 const resolvers = {
   Query: {
@@ -50,6 +57,29 @@ const resolvers = {
       if (restaurant_id)
         query.where({ restaurant_id: parseInt(restaurant_id) });
       return await query;
+    },
+
+    cloudinaryImages: async () => {
+      try {
+        if (!process.env.CLOUDINARY_API_KEY) {
+          throw new Error("Cloudinary API credentials missing on backend");
+        }
+        // resources() returns recent uploaded files
+        const result = await cloudinary.api.resources({
+          type: 'upload',
+          resource_type: 'image',
+          max_results: 50
+        });
+        
+        return result.resources.map(img => ({
+          public_id: img.public_id,
+          url: img.url,
+          secure_url: img.secure_url
+        }));
+      } catch (error) {
+        console.error("Error fetching Cloudinary images:", error);
+        throw new Error("Failed to fetch images from Cloudinary");
+      }
     },
   },
 
@@ -214,6 +244,19 @@ const resolvers = {
         .update({ ...input, updated_at: new Date() })
         .returning("*");
       return price;
+    },
+
+    deleteCloudinaryImage: async (_, { public_id }) => {
+      try {
+        if (!process.env.CLOUDINARY_API_KEY) {
+          throw new Error("Cloudinary API credentials missing on backend");
+        }
+        await cloudinary.uploader.destroy(public_id);
+        return true;
+      } catch (error) {
+        console.error("Error deleting Cloudinary image:", error);
+        throw new Error("Failed to delete image from Cloudinary");
+      }
     },
   },
 };
