@@ -26,23 +26,43 @@ const resolvers = {
   },
 
   Mutation: {
-    createEmployee: async (_, { name, country, location_id, phone, email, role }) => {
+    createEmployee: async (_, { name, country, location_id, phone, email, password, role }) => {
       // Usamos .post y pasamos params porque Python los recibe como argumentos de función
       const response = await axios.post(
         `${STAFF_API_URL}/employees/create`,
         null,
         {
-          params: { name, country, location_id, phone, email, role },
+          params: { name, country, location_id, phone, email, password, role },
         },
       );
       return response.data;
     },
+    loginStaff: async (_, { email, password }) => {
+      try {
+        const response = await axios.post(
+          `${STAFF_API_URL}/login`,
+          null,
+          {
+            params: { email, password },
+          },
+        );
+        return response.data;
+      } catch (error) {
+        const message = error.response?.data?.detail || error.message || "Error en el servidor de Staff";
+        console.log("SUBGRAPH ERROR CAUGHT:", message);
+        throw new Error(message);
+      }
+    },
     toggleEmployeeStatus: async (_, { emp_id }) => {
-      // La ruta debe coincidir exactamente: /employees/toggle/{id}
-      const response = await axios.put(
-        `${STAFF_API_URL}/employees/toggle/${emp_id}`,
-      );
-      return response.data;
+      try {
+        const response = await axios.put(
+          `${STAFF_API_URL}/employees/toggle/${emp_id}`,
+        );
+        return response.data;
+      } catch (error) {
+        const message = error.response?.data?.detail || error.message || "Error al cambiar estado";
+        throw new Error(message);
+      }
     },
 
     scanAttendance: async (_, { emp_id }) => {

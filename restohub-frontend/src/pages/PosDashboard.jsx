@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from "@apollo/client/react";
 import { PayPalButtons } from "@paypal/react-paypal-js";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { GET_DISHES } from "../graphql/menu";
 import {
@@ -45,14 +45,13 @@ const STATUS_LABELS = {
 };
 
 export default function PosDashboard() {
-  const { user } = useAuth();
-  const [restaurantId] = useState(user?.locationId || "rest-001");
-  const [cashierName, setCashierName] = useState(
-    () => localStorage.getItem("pos_cashier") || "",
-  );
-  const [loggedIn, setLoggedIn] = useState(
-    () => localStorage.getItem("pos_logged_in") === "true",
-  );
+  const { user, locationId: authLocationId } = useAuth();
+  const [restaurantId] = useState(String(user?.locationId || authLocationId || ""));
+  
+  useEffect(() => {
+    console.log("POS: restaurantId state:", restaurantId);
+  }, [restaurantId]);
+  
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modal, setModal] = useState(null);
   const [msg, setMsg] = useState(null);
@@ -87,8 +86,8 @@ export default function PosDashboard() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data, refetch } = useQuery(GET_POS_ORDERS, {
-    variables: { restaurant_id: restaurantId },
-    skip: !loggedIn,
+    variables: { restaurant_id: String(restaurantId) },
+    skip: !restaurantId,
     pollInterval: 4000,
   });
 
@@ -203,8 +202,8 @@ export default function PosDashboard() {
     try {
       const res = await createOrder({
         variables: {
-          restaurant_id: restaurantId,
-          cashier_name: cashierName,
+          restaurant_id: String(restaurantId),
+          cashier_name: user?.firstName || user?.first_name || "Cajero",
           table_ref: newOrder.table_ref || null,
           notes: newOrder.notes || null,
           items: [],
@@ -490,56 +489,15 @@ export default function PosDashboard() {
         setSelectedOrder(null);
         refetch();
       } else {
-        throw new Error("Error al capturar el pago");
+        const errorMsg = data.details?.details?.[0]?.description || data.error || "Error al capturar el pago";
+        throw new Error(errorMsg);
       }
     } catch (e) {
       showMsg(e.message, "error");
     }
   };
 
-  // Login screen
-  if (!loggedIn)
-    return (
-      <div style={s.loginWrap}>
-        <div style={s.loginBox}>
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: "1rem" }}>
-            <Monitor size={48} color="#f4511e" strokeWidth={1.5} />
-          </div>
-          <h2 style={s.loginTitle}>Punto de Venta</h2>
-          <p
-            style={{
-              color: "#666",
-              marginBottom: "1.5rem",
-              fontSize: "0.9rem",
-            }}
-          >
-            RestoHub POS
-          </p>
-          <input
-            style={s.input}
-            placeholder="Tu nombre (cajero)"
-            value={cashierName}
-            onChange={(e) => setCashierName(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && cashierName && setLoggedIn(true)
-            }
-          />
-          <button
-            style={{ ...s.btnPrimary, width: "100%" }}
-            onClick={() => {
-              if (cashierName) {
-                setLoggedIn(true);
-                localStorage.setItem("pos_logged_in", "true");
-                localStorage.setItem("pos_cashier", cashierName);
-              }
-            }}
-            disabled={!cashierName}
-          >
-            Ingresar al POS
-          </button>
-        </div>
-      </div>
-    );
+  if (!restaurantId) return <div style={s.wrap}>Cargando...</div>;
 
   // orders already defined via data?.posOrders
 
@@ -564,23 +522,12 @@ export default function PosDashboard() {
             POS — Punto de Venta
           </h1>
           <span style={s.sub}>
-            Cajero: {cashierName} · {stats.active} pedidos activos
+            Sede: {sedeActual?.name || "Cargando..."} · Cajero: {user?.firstName || user?.first_name} · {stats.active} pedidos activos
           </span>
         </div>
         <div style={{ display: "flex", gap: "0.5rem" }}>
           <button style={s.btnPrimary} onClick={() => setModal("createOrder")}>
             + Nuevo pedido
-          </button>
-          <button
-            style={s.btnSecondary}
-            onClick={() => {
-              setLoggedIn(false);
-              setCashierName("");
-              localStorage.removeItem("pos_logged_in");
-              localStorage.removeItem("pos_cashier");
-            }}
-          >
-            Salir
           </button>
         </div>
       </div>

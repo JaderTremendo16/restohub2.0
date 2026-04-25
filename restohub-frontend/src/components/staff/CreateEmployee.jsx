@@ -33,6 +33,7 @@ const CreateEmployee = ({ createEmployee, creating }) => {
   const { data: countriesData } = useQuery(GET_COUNTRIES);
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const sedeActual = locationsData?.locations?.find(
     (l) => String(l.id) === String(user?.locationId),
@@ -41,10 +42,21 @@ const CreateEmployee = ({ createEmployee, creating }) => {
   const paisActual = countriesData?.countries?.find(
     (c) => String(c.id) === String(sedeActual?.countryId),
   );
-
   const handleSubmit = async () => {
-    if (!name.trim() || !phone.trim() || !email.trim()) {
+    if (!name.trim() || !phone.trim() || !email.trim() || !password.trim()) {
       alert("Todos los campos son obligatorios");
+      return;
+    }
+
+    // Validación de email
+    if (!email.includes("@")) {
+      alert("El correo electrónico debe contener un '@'");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      alert("Por favor, ingresa un formato de correo válido (ej: usuario@empresa.com)");
       return;
     }
 
@@ -62,11 +74,13 @@ const CreateEmployee = ({ createEmployee, creating }) => {
         Number(user.locationId),
         phone,
         email,
+        password,
         role,
       );
       setName("");
       setPhone("");
       setEmail("");
+      setPassword("");
       setRole("cajero");
     } catch (e) {
       alert(e.message);
@@ -130,6 +144,17 @@ const CreateEmployee = ({ createEmployee, creating }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder=" "
+            style={inputStyle}
+          />
+        </div>
+
+        <div style={{ flex: 1, minWidth: "140px" }}>
+          <label style={labelStyle}>Contraseña *</label>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="****"
             style={inputStyle}
           />
         </div>

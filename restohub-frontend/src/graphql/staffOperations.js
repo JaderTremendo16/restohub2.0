@@ -43,6 +43,7 @@ export const CREATE_EMPLOYEE = gql`
     $location_id: Int
     $phone: String
     $email: String
+    $password: String
     $role: String!
   ) {
     createEmployee(
@@ -51,6 +52,7 @@ export const CREATE_EMPLOYEE = gql`
       location_id: $location_id
       phone: $phone
       email: $email
+      password: $password
       role: $role
     ) {
       id
@@ -78,6 +80,17 @@ export const SCAN_QR = gql`
       overtime
       message
       time
+    }
+  }
+`;
+export const LOGIN_STAFF = gql`
+  mutation LoginStaff($email: String!, $password: String!) {
+    loginStaff(email: $email, password: $password) {
+      id
+      name
+      role
+      location_id
+      email
     }
   }
 `;

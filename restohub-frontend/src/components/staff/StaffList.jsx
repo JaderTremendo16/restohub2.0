@@ -101,19 +101,27 @@ const StaffList = ({ employees, toggleStatus }) => {
 
             <button
               onClick={() => toggleStatus(emp.id)}
+              disabled={emp.active && emp.on_shift}
               style={{
                 width: "100%",
                 padding: "8px",
                 borderRadius: "6px",
                 border: "none",
-                backgroundColor: emp.active ? "#fee2e2" : "#dcfce7",
-                color: emp.active ? "#991b1b" : "#166534",
+                backgroundColor: (emp.active && emp.on_shift) 
+                  ? "#f3f4f6" 
+                  : (emp.active ? "#fee2e2" : "#dcfce7"),
+                color: (emp.active && emp.on_shift)
+                  ? "#9ca3af"
+                  : (emp.active ? "#991b1b" : "#166534"),
                 fontWeight: "600",
-                cursor: "pointer",
+                cursor: (emp.active && emp.on_shift) ? "not-allowed" : "pointer",
                 transition: "background 0.2s",
               }}
+              title={emp.active && emp.on_shift ? "No se puede desactivar mientras esté en turno" : ""}
             >
-              {emp.active ? "Desactivar Empleado" : "Activar Empleado"}
+              {emp.active 
+                ? (emp.on_shift ? "En Turno (No desactivable)" : "Desactivar Empleado") 
+                : "Activar Empleado"}
             </button>
           </div>
         ))}

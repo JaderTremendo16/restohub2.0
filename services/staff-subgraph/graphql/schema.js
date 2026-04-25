@@ -14,6 +14,14 @@ const typeDefs = gql`
     role: String!
   }
 
+  type StaffLoginResponse {
+    id: ID!
+    name: String!
+    role: String!
+    location_id: Int
+    email: String
+  }
+
   type ActiveStaff {
     id: ID!
     name: String!
@@ -62,8 +70,11 @@ const typeDefs = gql`
       location_id: Int
       phone: String
       email: String
+      password: String
       role: String!
     ): Employee!
+
+    loginStaff(email: String!, password: String!): StaffLoginResponse!
 
     # Escaneo de asistencia (POST /attendance/scan/{id})
     scanAttendance(emp_id: Int!): ScanResponse!

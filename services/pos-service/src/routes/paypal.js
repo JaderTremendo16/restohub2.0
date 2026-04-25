@@ -78,7 +78,17 @@ router.post("/capture-paypal-order", async (req, res) => {
     }
   } catch (error) {
     console.error("PayPal Capture Error:", error);
-    res.status(500).json({ error: error.message });
+    let details = null;
+    try {
+        details = JSON.parse(error.message);
+    } catch (e) {
+        details = { message: error.message };
+    }
+    res.status(500).json({ 
+        status: "failure", 
+        error: error.message,
+        details: details 
+    });
   }
 });
 

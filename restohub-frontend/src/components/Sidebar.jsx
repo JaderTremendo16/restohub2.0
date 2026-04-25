@@ -39,7 +39,6 @@ function Sidebar() {
     },
     {
       title: "Operaciones",
-      roles: ["admin"],
       items: [
         {
           label: "Menú",
@@ -75,13 +74,13 @@ function Sidebar() {
           label: "Cocina",
           path: "/kitchen",
           icon: <ChefHat size={18} />,
-          roles: ["admin"],
+          roles: ["cocinero"],
         },
         {
           label: "Caja (POS)",
           path: "/pos",
           icon: <MonitorCheck size={18} />,
-          roles: ["admin"],
+          roles: ["cajero"],
         },
         {
           label: "Staff",

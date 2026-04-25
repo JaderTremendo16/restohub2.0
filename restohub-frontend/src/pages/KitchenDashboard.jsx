@@ -14,6 +14,7 @@ import {
   MapPin, Smartphone, Monitor, ClipboardList,
   UtensilsCrossed, Trophy
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const statusColors = {
   received: "#fff3e0",
@@ -63,46 +64,27 @@ const priorityText = {
 };
 
 export default function KitchenDashboard() {
-  const { user } = useAuth();
-  const [cook, setCook] = useState(null);
-
-  // Efecto para sincronizar el cocinero cuando cambia la sede (para admins)
-  useEffect(() => {
-    if (user?.locationId) {
-      const saved = localStorage.getItem(`kitchen_cook_${user.locationId}`);
-      setCook(saved ? JSON.parse(saved) : null);
-    } else {
-      // Si no hay sede (ej. logout), limpiar
-      setCook(null);
-    }
-  }, [user?.locationId]);
-  const [isRegistering, setIsRegistering] = useState(false);
-  const [loginForm, setLoginForm] = useState({ email: "", password: "" });
-  const [registerForm, setRegisterForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    restaurant_id: user?.locationId || "",
-    role: "cook",
-  });
-  const [loginError, setLoginError] = useState(null);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [message, setMessage] = useState(null);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
 
   const { data: locationsData } = useQuery(GET_LOCATIONS);
 
-  const [loginCook] = useMutation(LOGIN_COOK);
-  const [registerCook] = useMutation(REGISTER_COOK);
   const { data, loading, error, refetch, networkStatus } = useQuery(
     GET_KITCHEN_ORDERS,
     {
-      variables: { restaurant_id: cook?.restaurant_id },
+      variables: { restaurant_id: String(user?.locationId || "") },
       pollInterval: 3000,
       notifyOnNetworkStatusChange: true,
-      skip: !cook,
+      skip: !user?.locationId,
     },
   );
+
+  useEffect(() => {
+    console.log("KITCHEN: restaurant_id being sent:", String(user?.locationId || ""));
+  }, [user]);
 
   const isInitialLoading = loading && networkStatus === 1;
   const [updateStatus] = useMutation(UPDATE_KITCHEN_STATUS);
@@ -110,49 +92,6 @@ export default function KitchenDashboard() {
   const showMessage = (text, type = "success") => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 3000);
-  };
-
-  const handleLogin = async () => {
-    try {
-      setLoginError(null);
-      const result = await loginCook({
-        variables: {
-          ...loginForm,
-          restaurant_id: user?.locationId || null,
-        },
-      });
-      const loggedCook = result.data.loginCook.cook;
-      setCook(loggedCook);
-      localStorage.setItem(
-        `kitchen_token_${user?.locationId}`,
-        result.data.loginCook.token,
-      );
-      localStorage.setItem(
-        `kitchen_cook_${user?.locationId}`,
-        JSON.stringify(loggedCook),
-      );
-    } catch (e) {
-      setLoginError(e.message);
-    }
-  };
-
-  const handleRegister = async () => {
-    try {
-      setLoginError(null);
-      await registerCook({ variables: registerForm });
-      setIsRegistering(false);
-      setLoginForm({ email: registerForm.email, password: "" });
-      setRegisterForm({
-        name: "",
-        email: "",
-        password: "",
-        restaurant_id: user?.locationId || "",
-        role: "cook",
-      });
-      alert("Cocinero registrado exitosamente. Ahora puedes iniciar sesión.");
-    } catch (e) {
-      setLoginError(e.message);
-    }
   };
 
   const handleStatusChange = async (id, status) => {
@@ -184,135 +123,11 @@ export default function KitchenDashboard() {
     return <>{loc.name}</>;
   }
 
-  if (!cook) {
+  if (isInitialLoading) {
     return (
-      <div style={s.loginContainer}>
-        <div style={s.loginBox}>
-          <div style={s.loginIcon}>🍳</div>
-          <h2 style={s.loginTitle}>
-            {isRegistering ? "Registro Cocinero" : "Acceso Cocina"}
-          </h2>
-          <p style={s.loginSubtitle}>RestoHub Kitchen</p>
-
-          {loginError && <p style={s.loginError}>{loginError}</p>}
-
-          {!isRegistering ? (
-            <>
-              <input
-                style={s.input}
-                type="email"
-                placeholder="Correo electrónico"
-                value={loginForm.email}
-                onChange={(e) =>
-                  setLoginForm({ ...loginForm, email: e.target.value })
-                }
-              />
-              <input
-                style={s.input}
-                type="password"
-                placeholder="Contraseña"
-                value={loginForm.password}
-                onChange={(e) =>
-                  setLoginForm({ ...loginForm, password: e.target.value })
-                }
-                onKeyDown={(e) => e.key === "Enter" && handleLogin()}
-              />
-              <button style={s.loginBtn} onClick={handleLogin}>
-                Ingresar
-              </button>
-              <p style={s.switchText}>
-                ¿Nuevo cocinero?{" "}
-                <span
-                  style={s.switchLink}
-                  onClick={() => {
-                    setIsRegistering(true);
-                    setLoginError(null);
-                  }}
-                >
-                  Registrarse
-                </span>
-              </p>
-            </>
-          ) : (
-            <>
-              <input
-                style={s.input}
-                placeholder="Nombre completo"
-                value={registerForm.name}
-                onChange={(e) =>
-                  setRegisterForm({ ...registerForm, name: e.target.value })
-                }
-              />
-              <input
-                style={s.input}
-                type="email"
-                placeholder="Correo electrónico"
-                value={registerForm.email}
-                onChange={(e) =>
-                  setRegisterForm({ ...registerForm, email: e.target.value })
-                }
-              />
-              <input
-                style={s.input}
-                type="password"
-                placeholder="Contraseña"
-                value={registerForm.password}
-                onChange={(e) =>
-                  setRegisterForm({ ...registerForm, password: e.target.value })
-                }
-              />
-              <select
-                style={{
-                  ...s.input,
-                  color: registerForm.restaurant_id ? "#333" : "#888",
-                  backgroundColor: user?.locationId ? "#f3f4f6" : "#f8f9fa",
-                  cursor: user?.locationId ? "not-allowed" : "pointer",
-                }}
-                value={registerForm.restaurant_id}
-                onChange={(e) =>
-                  setRegisterForm({
-                    ...registerForm,
-                    restaurant_id: e.target.value,
-                  })
-                }
-                disabled={!!user?.locationId}
-              >
-                <option value="">Selecciona la sede del restaurante</option>
-                {locationsData?.locations?.map((loc) => (
-                  <option key={loc.id} value={loc.id}>
-                    {loc.name}
-                  </option>
-                ))}
-              </select>
-              <select
-                style={s.input}
-                value={registerForm.role}
-                onChange={(e) =>
-                  setRegisterForm({ ...registerForm, role: e.target.value })
-                }
-              >
-                <option value="cook">Cocinero</option>
-                <option value="chef">Chef</option>
-                <option value="assistant">Asistente</option>
-              </select>
-              <button style={s.loginBtn} onClick={handleRegister}>
-                Registrarse
-              </button>
-              <p style={s.switchText}>
-                ¿Ya tienes cuenta?{" "}
-                <span
-                  style={s.switchLink}
-                  onClick={() => {
-                    setIsRegistering(false);
-                    setLoginError(null);
-                  }}
-                >
-                  Iniciar sesión
-                </span>
-              </p>
-            </>
-          )}
-        </div>
+      <div style={s.loaderContainer}>
+        <div style={s.loader}></div>
+        <p>Cargando pedidos de cocina...</p>
       </div>
     );
   }
@@ -327,16 +142,16 @@ export default function KitchenDashboard() {
 
   const allOrders = data?.kitchenOrders || [];
 
-  // Buscar el nombre de la sede del cocinero (ya que el cliente envía el nombre como restaurant_id)
+  // Buscar el nombre de la sede (ya que el cliente envía el nombre como restaurant_id)
   const myLocation = locationsData?.locations?.find(
-    (loc) => String(loc.id) === String(cook?.restaurant_id),
+    (loc) => String(loc.id) === String(user?.locationId),
   );
   const myLocationName = myLocation ? myLocation.name : null;
 
-  // Filtrar solo las órdenes que corresponden a la sede del cocinero (por ID o por Nombre)
+  // Filtrar solo las órdenes que corresponden a la sede actual
   const ordersForMySede = allOrders.filter(
     (o) =>
-      String(o.restaurant_id) === String(cook?.restaurant_id) ||
+      String(o.restaurant_id) === String(user?.locationId) ||
       o.restaurant_id === myLocationName,
   );
 
@@ -388,7 +203,7 @@ export default function KitchenDashboard() {
           <span style={s.subtitle}>
             {pendingCount} pendientes · {inProcessCount} en proceso ·{" "}
             {readyCount} completadas · Sede:{" "}
-            {myLocation?.name || cook?.restaurant_id}
+            {myLocation?.name || user?.locationId}
           </span>
         </div>
         <div style={s.cookInfo}>
@@ -401,20 +216,8 @@ export default function KitchenDashboard() {
           </button>
           <span style={s.cookName}>
             <ChefHat size={16} style={{ display: "inline", marginRight: 4, verticalAlign: "middle" }} />
-            {cook.name}
+            Cocinero: {user?.firstName || user?.name || user?.first_name || "Personal"}
           </span>
-          <span style={s.cookRole}>{cook.role}</span>
-          <button
-            style={s.logoutBtn}
-            onClick={() => {
-              setCook(null);
-              localStorage.removeItem(`kitchen_token_${user?.locationId}`);
-              localStorage.removeItem(`kitchen_cook_${user?.locationId}`);
-            }}
-          >
-            <LogOut size={14} style={{ verticalAlign: "middle", marginRight: 4 }} />
-            Salir
-          </button>
         </div>
       </div>
 
@@ -735,6 +538,21 @@ const s = {
     background: "transparent",
     minHeight: "calc(100vh - 100px)",
     color: "#333",
+  },
+  loaderContainer: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    height: "50vh",
+  },
+  loader: {
+    border: "4px solid #f3f3f3",
+    borderTop: "4px solid #f4511e",
+    borderRadius: "50%",
+    width: "40px",
+    height: "40px",
+    animation: "spin 2s linear infinite",
   },
   modalOverlay: {
     position: "fixed",

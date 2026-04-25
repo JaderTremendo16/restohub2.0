@@ -23,7 +23,13 @@ function Layout() {
     ? `${user.firstName} ${user.lastName ?? ""}`
     : `${user?.first_name ?? ""} ${user?.last_name ?? ""}`;
 
-  const rolLabel = isGerenteGeneral ? "Gerente General" : "Administrador";
+  const rolLabel = isGerenteGeneral 
+    ? "Gerente General" 
+    : user?.role === "cocinero" 
+      ? "Cocinero" 
+      : user?.role === "cajero" 
+        ? "Cajero" 
+        : "Administrador";
 
   return (
     <div

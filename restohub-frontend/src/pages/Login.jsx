@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useMutation, useApolloClient } from "@apollo/client/react";
 import { LOGIN, GET_LOCATIONS } from "../graphql/location";
+import { LOGIN_STAFF } from "../graphql/staffOperations";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 
@@ -9,58 +10,102 @@ function Login() {
   const [error, setError] = useState("");
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const client = useApolloClient();
-
-  const [loginMutation, { loading }] = useMutation(LOGIN, {
-    onCompleted: async (data) => {
-      const { token, user } = data.login;
-      
-      try {
-        console.log("Iniciando resolución de sede para:", user.locationId);
-        // Descarga fresca de sedes
-        const { data: locs } = await client.query({
-          query: GET_LOCATIONS,
-          fetchPolicy: 'network-only'
-        });
-        
-        // Mapeo exhaustivo
-        const location = locs?.locations?.find(l => 
-          parseInt(l.id) === parseInt(user.locationId)
-        );
-        
-        // Si no se encuentra en el servidor (raro), forzamos casos conocidos
-        let branchName = location ? location.name : "Global";
-        if (branchName === "Global" && parseInt(user.locationId) === 1) {
-          branchName = "Portugal";
-        }
-        
-        console.log("Sede resuelta:", branchName);
-        login(user, token, user.locationId, branchName);
-        navigate("/");
-      } catch (err) {
-        console.error("Error crítico en login:", err);
-        login(user, token, user.locationId, "Global");
-        navigate("/");
-      }
-    },
-    onError: (e) => {
-      setError("Credenciales incorrectas. Verifica tu email y contraseña.");
-    },
-  });
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
     setError("");
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.email || !form.password) {
       setError("Completa todos los campos");
       return;
     }
-    loginMutation({
-      variables: { email: form.email, password: form.password },
-    });
+    setError("");
+    setIsSubmitting(true);
+
+    try {
+      // 1. Intentar login administrativo
+      const { data: adminData } = await client.mutate({
+        mutation: LOGIN,
+        variables: { email: form.email, password: form.password },
+        errorPolicy: 'all'
+      });
+
+      if (adminData?.login) {
+        const { token, user } = adminData.login;
+        const { data: locs } = await client.query({
+          query: GET_LOCATIONS,
+          fetchPolicy: 'network-only'
+        });
+        const location = locs?.locations?.find(l => parseInt(l.id) === parseInt(user.locationId));
+        const branchName = location ? location.name : "Global";
+        login(user, token, user.locationId, branchName);
+        navigate("/");
+        return;
+      }
+
+      // 2. Intentar login de Staff
+      const { data: staffData } = await client.mutate({
+        mutation: LOGIN_STAFF,
+        variables: { email: form.email, password: form.password },
+        errorPolicy: 'all'
+      });
+
+      if (staffData?.loginStaff) {
+        const staff = staffData.loginStaff;
+        // Mapeamos a la estructura que espera AuthContext
+        const userData = {
+          id: staff.id,
+          first_name: staff.name,
+          role: staff.role,
+          locationId: staff.location_id,
+          email: staff.email
+        };
+        
+        // Resolvemos el nombre de la sede
+        const { data: locs } = await client.query({
+          query: GET_LOCATIONS,
+          fetchPolicy: 'network-only'
+        });
+        const location = locs?.locations?.find(l => parseInt(l.id) === parseInt(staff.location_id));
+        const branchName = location ? location.name : "Global";
+
+        login(userData, "staff_token", staff.location_id, branchName);
+
+        // Redirigir según rol
+        if (staff.role === "cocinero") {
+          navigate("/kitchen");
+        } else if (staff.role === "cajero") {
+          navigate("/pos");
+        } else {
+          navigate("/");
+        }
+        return;
+      }
+
+      setError("Credenciales incorrectas o usuario no encontrado.");
+    } catch (err) {
+      // Extraer el mensaje específico de GraphQL de forma más robusta
+      const gqlError = err.graphQLErrors?.[0]?.message || err.networkError?.message || err.message || "";
+      const errorMsg = String(gqlError).toLowerCase();
+      
+      console.log("Error analizado:", errorMsg);
+
+      if (errorMsg.includes("desactivado")) {
+        setError("Tu usuario ha sido desactivado por el administrador.");
+      } else if (errorMsg.includes("turno") || errorMsg.includes("403") || errorMsg.includes("forbidden")) {
+        setError("Tu turno no ha iniciado. Escanea el QR de asistencia para entrar.");
+      } else if (gqlError && String(gqlError) !== "[object Object]") {
+        setError(String(gqlError));
+      } else {
+        setError("Credenciales incorrectas o usuario no encontrado.");
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleKeyDown = (e) => {
@@ -200,21 +245,21 @@ function Login() {
 
           <button
             onClick={handleSubmit}
-            disabled={loading}
+            disabled={isSubmitting}
             style={{
-              backgroundColor: loading ? "#f97316" : "#ea580c",
+              backgroundColor: isSubmitting ? "#f97316" : "#ea580c",
               color: "white",
               border: "none",
               padding: "0.875rem",
               borderRadius: "0.625rem",
               fontSize: "0.95rem",
               fontWeight: "700",
-              cursor: loading ? "not-allowed" : "pointer",
+              cursor: isSubmitting ? "not-allowed" : "pointer",
               marginTop: "0.5rem",
               transition: "background-color 0.2s",
             }}
           >
-            {loading ? "Iniciando sesión..." : "Iniciar sesión"}
+            {isSubmitting ? "Iniciando sesión..." : "Iniciar sesión"}
           </button>
         </div>
       </div>

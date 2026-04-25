@@ -4,6 +4,7 @@ import {
   CREATE_EMPLOYEE,
   TOGGLE_STATUS,
   SCAN_QR,
+  LOGIN_STAFF,
 } from "../graphql/staffOperations";
 
 export const useStaff = (locationId) => {
@@ -15,19 +16,31 @@ export const useStaff = (locationId) => {
   const [createEmployeeMutation] = useMutation(CREATE_EMPLOYEE);
   const [toggleStatusMutation] = useMutation(TOGGLE_STATUS);
   const [scanQRMutation] = useMutation(SCAN_QR);
+  const [loginStaffMutation] = useMutation(LOGIN_STAFF);
 
-  const createEmployee = async (name, country, location_id, phone, email, role) => {
+  const createEmployee = async (name, country, location_id, phone, email, password, role) => {
     await createEmployeeMutation({
-      variables: { name, country, location_id, phone, email, role },
+      variables: { name, country, location_id, phone, email, password, role },
     });
     await refetch();
   };
 
-  const toggleStatus = async (id) => {
-    await toggleStatusMutation({
-      variables: { empId: parseInt(id) },
+  const loginStaff = async (email, password) => {
+    const res = await loginStaffMutation({
+      variables: { email, password },
     });
-    await refetch();
+    return res.data.loginStaff;
+  };
+
+  const toggleStatus = async (id) => {
+    try {
+      await toggleStatusMutation({
+        variables: { empId: parseInt(id) },
+      });
+      await refetch();
+    } catch (e) {
+      alert(e.message || "No se pudo cambiar el estado del empleado");
+    }
   };
 
   const scanQR = async (id, options = {}) => {
@@ -48,5 +61,6 @@ export const useStaff = (locationId) => {
     createEmployee,
     toggleStatus,
     scanQR,
+    loginStaff,
   };
 };
