@@ -11,6 +11,7 @@ import {
   SEARCH_EXTERNAL_COUNTRY,
 } from "../graphql/location";
 import { Globe, Store, MapPin, User, Building2 } from "lucide-react";
+import MapaPicker from "../components/MapaPicker";
 
 // Lista rápida de países con sus monedas y zonas horarias automáticas
 // Removido WORLD_COUNTRIES hardcoded para usar la API en tiempo real.
@@ -373,6 +374,8 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
     name: "",
     address: "",
     countryId: "",
+    lat: null,
+    lng: null,
   });
   const [expandido, setExpandido] = useState(false);
   const [filtroPais, setFiltroPais] = useState("");
@@ -380,7 +383,7 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
   const [createLocation, { loading }] = useMutation(CREATE_LOCATION, {
     refetchQueries: [{ query: GET_LOCATIONS }],
     onCompleted: () => {
-      setForm({ name: "", address: "", countryId: "" });
+      setForm({ name: "", address: "", countryId: "", lat: null, lng: null });
       setExpandido(false);
     },
     onError: (e) => alert("Error al crear sede: " + e.message),
@@ -490,6 +493,28 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
                   </option>
                 ))}
               </select>
+            </div>
+
+            {/* Mapa interactivo */}
+            <div style={{ width: "100%", marginTop: "0.5rem" }}>
+              <label style={labelStyle}>Ubicación en el mapa Manualmente</label>
+              <MapaPicker
+                lat={form.lat}
+                lng={form.lng}
+                countryName={
+                  countries?.find((c) => String(c.id) === String(form.countryId))
+                    ?.name
+                }
+                onLocationChange={({ lat, lng, address }) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    lat,
+                    lng,
+                    // Si el mapa devuelve una dirección y el campo estaba vacío, lo auto-rellenamos
+                    address: prev.address || address || "",
+                  }));
+                }}
+              />
             </div>
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>

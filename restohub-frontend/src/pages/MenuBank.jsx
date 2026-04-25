@@ -12,19 +12,19 @@ import {
   GET_DISH_INGREDIENTS,
 } from "../graphql/menu";
 import { GET_INGREDIENTS, CREATE_INGREDIENT } from "../graphql/ingredients";
-import { 
-  Plus, 
-  Search, 
-  ChefHat, 
-  Info, 
-  Trash2, 
-  CheckCircle2, 
-  XCircle, 
+import {
+  Plus,
+  Search,
+  ChefHat,
+  Info,
+  Trash2,
+  CheckCircle2,
+  XCircle,
   Edit3,
   Scale,
   DollarSign,
   AlertTriangle,
-  Power
+  Power,
 } from "lucide-react";
 
 // --- Design Tokens & Styling ---
@@ -38,7 +38,7 @@ const COLORS = {
   card: "#ffffff",
   text: "#334155",
   textMuted: "#64748b",
-  border: "#e2e8f0"
+  border: "#e2e8f0",
 };
 
 const inputStyle = {
@@ -51,7 +51,7 @@ const inputStyle = {
   outline: "none",
   backgroundColor: "white",
   transition: "all 0.2s",
-  marginBottom: "0.5rem"
+  marginBottom: "0.5rem",
 };
 
 const labelStyle = {
@@ -61,7 +61,7 @@ const labelStyle = {
   color: COLORS.text,
   marginBottom: "0.5rem",
   textTransform: "uppercase",
-  letterSpacing: "0.025em"
+  letterSpacing: "0.025em",
 };
 
 const CATEGORIAS = ["entrada", "sopa", "principal", "postre", "bebida"];
@@ -85,21 +85,75 @@ const convertToGlobalValue = (quantity, unit) => {
 
 // --- Sub-Component: Modal Create/Edit Dish ---
 function DishEditorModal({ dish, onClose, onSaved }) {
-  const [form, setForm] = useState(dish ? {
-    name: dish.name,
-    description: dish.description || "",
-    category: dish.category
-  } : {
-    name: "",
-    description: "",
-    category: "principal"
-  });
+  const [form, setForm] = useState(
+    dish
+      ? {
+          name: dish.name,
+          description: dish.description || "",
+          category: dish.category,
+          image_url: dish.image_url || "",
+        }
+      : {
+          name: "",
+          description: "",
+          category: "principal",
+          image_url: "",
+        },
+  );
 
-  const [saveDish, { loading }] = useMutation(dish ? UPDATE_DISH : CREATE_DISH, {
-    refetchQueries: [{ query: GET_DISHES, variables: { onlyGlobal: true } }],
-    onCompleted: (data) => onSaved(dish ? data.updateDish : data.createDish),
-    onError: (e) => alert("Error: " + e.message)
-  });
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      alert(
+        "Faltan credenciales de Cloudinary en el archivo .env (VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET)",
+      );
+      return;
+    }
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", uploadPreset);
+
+    setUploadingImage(true);
+    try {
+      const res = await fetch(
+        `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+        {
+          method: "POST",
+          body: data,
+        },
+      );
+      const result = await res.json();
+      if (result.secure_url) {
+        setForm({ ...form, image_url: result.secure_url });
+      } else {
+        alert(
+          "Error al subir la imagen: " +
+            (result.error?.message || "Desconocido"),
+        );
+      }
+    } catch (error) {
+      alert("Error al subir la imagen: " + error.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const [saveDish, { loading }] = useMutation(
+    dish ? UPDATE_DISH : CREATE_DISH,
+    {
+      refetchQueries: [{ query: GET_DISHES, variables: { onlyGlobal: true } }],
+      onCompleted: (data) => onSaved(dish ? data.updateDish : data.createDish),
+      onError: (e) => alert("Error: " + e.message),
+    },
+  );
 
   const handleSave = () => {
     if (!form.name.trim()) return alert("El nombre es obligatorio");
@@ -112,45 +166,147 @@ function DishEditorModal({ dish, onClose, onSaved }) {
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000, padding: "1rem" }}>
-      <div style={{ backgroundColor: "white", padding: "2rem", borderRadius: "1.5rem", width: "100%", maxWidth: "500px", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1.5rem" }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0,0,0,0.6)",
+        backdropFilter: "blur(4px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 1000,
+        padding: "1rem",
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: "white",
+          padding: "2rem",
+          borderRadius: "1.5rem",
+          width: "100%",
+          maxWidth: "500px",
+          boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem",
+            marginBottom: "1.5rem",
+          }}
+        >
           <ChefHat color={COLORS.primary} size={28} />
-          <h2 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "800", color: COLORS.secondary }}>
-            {dish ? "Editar Plato Maestro" : "Nuevo Plato Maestro"}
+          <h2
+            style={{
+              margin: 0,
+              fontSize: "1.5rem",
+              fontWeight: "800",
+              color: COLORS.secondary,
+            }}
+          >
+            {dish ? "Editar Plato" : "Nuevo Plato"}
           </h2>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div>
             <label style={labelStyle}>Nombre del Plato</label>
-            <input 
-              value={form.name} 
-              onChange={e => setForm({...form, name: e.target.value})}
+            <input
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="Ej: Burger Master Classic"
               style={inputStyle}
-              onFocus={e => e.target.style.borderColor = COLORS.primary}
-              onBlur={e => e.target.style.borderColor = COLORS.border}
+              onFocus={(e) => (e.target.style.borderColor = COLORS.primary)}
+              onBlur={(e) => (e.target.style.borderColor = COLORS.border)}
             />
+          </div>
+          <div>
+            <label style={labelStyle}>Imagen del plato (Opcional)</label>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              {form.image_url ? (
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <img
+                    src={form.image_url}
+                    alt="Preview"
+                    style={{
+                      width: "64px",
+                      height: "64px",
+                      objectFit: "cover",
+                      borderRadius: "0.5rem",
+                      border: "1px solid #e5e7eb",
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, image_url: "" })}
+                    style={{
+                      position: "absolute",
+                      top: -8,
+                      right: -8,
+                      background: "#ef4444",
+                      color: "white",
+                      borderRadius: "50%",
+                      width: 24,
+                      height: 24,
+                      border: "none",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      fontSize: "0.8rem",
+                      padding: 0,
+                    }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : null}
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageUpload}
+                disabled={uploadingImage}
+                style={{
+                  ...inputStyle,
+                  flex: 1,
+                  padding: "0.4rem",
+                }}
+              />
+            </div>
+            {uploadingImage && (
+              <p
+                style={{
+                  fontSize: "0.75rem",
+                  color: COLORS.primary,
+                  marginTop: "0.4rem",
+                  margin: 0,
+                }}
+              >
+                Subiendo imagen a la nube...
+              </p>
+            )}
           </div>
           <div>
             <label style={labelStyle}>Categoría</label>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-              {CATEGORIAS.map(cat => (
+              {CATEGORIAS.map((cat) => (
                 <button
                   key={cat}
-                  onClick={() => setForm({...form, category: cat})}
+                  onClick={() => setForm({ ...form, category: cat })}
                   style={{
                     padding: "0.5rem 1rem",
                     borderRadius: "2rem",
                     fontSize: "0.8rem",
                     fontWeight: "700",
                     border: `2px solid ${form.category === cat ? COLORS.primary : COLORS.border}`,
-                    backgroundColor: form.category === cat ? COLORS.primary : "white",
+                    backgroundColor:
+                      form.category === cat ? COLORS.primary : "white",
                     color: form.category === cat ? "white" : COLORS.textMuted,
                     cursor: "pointer",
                     transition: "all 0.2s",
-                    textTransform: "capitalize"
+                    textTransform: "capitalize",
                   }}
                 >
                   {cat}
@@ -160,24 +316,56 @@ function DishEditorModal({ dish, onClose, onSaved }) {
           </div>
           <div>
             <label style={labelStyle}>Descripción / Nota Receta</label>
-            <textarea 
-              value={form.description} 
-              onChange={e => setForm({...form, description: e.target.value})}
+            <textarea
+              value={form.description}
+              onChange={(e) =>
+                setForm({ ...form, description: e.target.value })
+              }
               placeholder="Detalla cómo debe verse o servirse el plato..."
               rows={3}
               style={{ ...inputStyle, resize: "none" }}
-              onFocus={e => e.target.style.borderColor = COLORS.primary}
-              onBlur={e => e.target.style.borderColor = COLORS.border}
+              onFocus={(e) => (e.target.style.borderColor = COLORS.primary)}
+              onBlur={(e) => (e.target.style.borderColor = COLORS.border)}
             />
           </div>
         </div>
 
         <div style={{ display: "flex", gap: "1rem", marginTop: "2rem" }}>
-          <button onClick={onClose} style={{ flex: 1, padding: "0.875rem", borderRadius: "0.75rem", border: `1.5px solid ${COLORS.border}`, backgroundColor: "white", color: COLORS.text, fontWeight: "700", cursor: "pointer" }}>
+          <button
+            onClick={onClose}
+            style={{
+              flex: 1,
+              padding: "0.875rem",
+              borderRadius: "0.75rem",
+              border: `1.5px solid ${COLORS.border}`,
+              backgroundColor: "white",
+              color: COLORS.text,
+              fontWeight: "700",
+              cursor: "pointer",
+            }}
+          >
             Cancelar
           </button>
-          <button onClick={handleSave} disabled={loading} style={{ flex: 2, padding: "0.875rem", borderRadius: "0.75rem", border: "none", backgroundColor: COLORS.primary, color: "white", fontWeight: "700", cursor: "pointer", boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)" }}>
-            {loading ? "Guardando..." : (dish ? "Actualizar Maestro" : "Crear en el Banco")}
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            style={{
+              flex: 2,
+              padding: "0.875rem",
+              borderRadius: "0.75rem",
+              border: "none",
+              backgroundColor: COLORS.primary,
+              color: "white",
+              fontWeight: "700",
+              cursor: "pointer",
+              boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)",
+            }}
+          >
+            {loading
+              ? "Guardando..."
+              : dish
+                ? "Actualizar"
+                : "Crear en el Banco"}
           </button>
         </div>
       </div>
@@ -191,55 +379,79 @@ function RecipeEditor({ dish, onClose, ingredients, refetchIngredients }) {
     name: "",
     quantity: "",
     unit: "kg",
-    category: "Otros"
+    category: "Otros",
   });
 
   const [editIngId, setEditIngId] = useState(null);
   const [editIngVal, setEditIngVal] = useState("");
   const [editIngUnit, setEditIngUnit] = useState("kg");
 
-  const { data: recipeData, refetch: refetchRecipe } = useQuery(GET_DISH_INGREDIENTS, {
-    variables: { dish_id: dish.id }
-  });
+  const { data: recipeData, refetch: refetchRecipe } = useQuery(
+    GET_DISH_INGREDIENTS,
+    {
+      variables: { dish_id: dish.id },
+    },
+  );
 
-  const [addIngredient, { loading: adding }] = useMutation(ADD_DISH_INGREDIENT, {
-    onError: (e) => alert(e.message)
-  });
+  const [addIngredient, { loading: adding }] = useMutation(
+    ADD_DISH_INGREDIENT,
+    {
+      onError: (e) => alert(e.message),
+    },
+  );
 
   const [updateDishIngredient] = useMutation(UPDATE_DISH_INGREDIENT, {
     onCompleted: () => refetchRecipe(),
-    onError: (e) => alert(e.message)
+    onError: (e) => alert(e.message),
   });
 
   const [removeIngredient] = useMutation(REMOVE_DISH_INGREDIENT, {
     onCompleted: () => refetchRecipe(),
-    onError: (e) => alert(e.message)
+    onError: (e) => alert(e.message),
   });
 
   const [createGlobalIngredient] = useMutation(CREATE_INGREDIENT, {
-    refetchQueries: [{ query: GET_INGREDIENTS, variables: { location_id: null } }],
-    onError: (e) => alert("Error creando ingrediente global: " + e.message)
+    refetchQueries: [
+      { query: GET_INGREDIENTS, variables: { location_id: null } },
+    ],
+    onError: (e) => alert("Error creando ingrediente global: " + e.message),
   });
 
   const handleAdd = async () => {
-    if (!ingForm.name.trim() || !ingForm.quantity || parseFloat(ingForm.quantity) <= 0) {
+    if (
+      !ingForm.name.trim() ||
+      !ingForm.quantity ||
+      parseFloat(ingForm.quantity) <= 0
+    ) {
       if (ingForm.quantity && parseFloat(ingForm.quantity) <= 0) {
         alert("La cantidad debe ser mayor a cero");
       }
       return;
     }
 
-    const normalizedName = ingForm.name.trim().charAt(0).toUpperCase() + ingForm.name.trim().slice(1);
-    
+    const normalizedName =
+      ingForm.name.trim().charAt(0).toUpperCase() +
+      ingForm.name.trim().slice(1);
+
     try {
       let ingredientId;
-      const existing = ingredients?.find(i => i.name.toLowerCase() === normalizedName.toLowerCase());
-      
+      const existing = ingredients?.find(
+        (i) => i.name.toLowerCase() === normalizedName.toLowerCase(),
+      );
+
       if (existing) {
         ingredientId = existing.id;
       } else {
         const { data } = await createGlobalIngredient({
-          variables: { input: { name: normalizedName, unit: ingForm.unit, category: ingForm.category, location_id: null, cost_per_unit: 0 } }
+          variables: {
+            input: {
+              name: normalizedName,
+              unit: ingForm.unit,
+              category: ingForm.category,
+              location_id: null,
+              cost_per_unit: 0,
+            },
+          },
         });
         ingredientId = data.createIngredient.id;
         await refetchIngredients();
@@ -251,56 +463,150 @@ function RecipeEditor({ dish, onClose, ingredients, refetchIngredients }) {
             dish_id: parseInt(dish.id),
             ingredient_id: parseInt(ingredientId),
             quantity: parseFloat(ingForm.quantity),
-            unit: ingForm.unit
-          }
-        }
+            unit: ingForm.unit,
+          },
+        },
       });
       refetchRecipe();
       setIngForm({ name: "", quantity: "", unit: "kg", category: "Otros" });
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
-    <div style={{ position: "fixed", inset: 0, backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(8px)", display: "flex", alignItems: "center", justifyContent: "flex-end", zIndex: 1000 }}>
-      <div style={{ width: "100%", maxWidth: "500px", height: "100vh", backgroundColor: "white", padding: "2.5rem", boxShadow: "-20px 0 50px rgba(0,0,0,0.2)", overflowY: "auto" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        backgroundColor: "rgba(0,0,0,0.6)",
+        backdropFilter: "blur(8px)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "flex-end",
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          width: "100%",
+          maxWidth: "500px",
+          height: "100vh",
+          backgroundColor: "white",
+          padding: "2.5rem",
+          boxShadow: "-20px 0 50px rgba(0,0,0,0.2)",
+          overflowY: "auto",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            marginBottom: "2rem",
+          }}
+        >
           <div>
-            <h3 style={{ margin: 0, fontSize: "1.5rem", fontWeight: "800", color: COLORS.secondary }}>Receta Maestra</h3>
-            <p style={{ margin: "0.25rem 0 0 0", color: COLORS.primary, fontWeight: "700" }}>{dish.name}</p>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: "1.5rem",
+                fontWeight: "800",
+                color: COLORS.secondary,
+              }}
+            >
+              Receta
+            </h3>
+            <p
+              style={{
+                margin: "0.25rem 0 0 0",
+                color: COLORS.primary,
+                fontWeight: "700",
+              }}
+            >
+              {dish.name}
+            </p>
           </div>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: COLORS.textMuted, cursor: "pointer" }}><XCircle size={24} /></button>
+          <button
+            onClick={onClose}
+            style={{
+              background: "none",
+              border: "none",
+              color: COLORS.textMuted,
+              cursor: "pointer",
+            }}
+          >
+            <XCircle size={24} />
+          </button>
         </div>
 
         {/* Add Ingredient Section */}
-        <div style={{ backgroundColor: COLORS.bg, padding: "1.5rem", borderRadius: "1.25rem", marginBottom: "2rem", border: `1px solid ${COLORS.border}` }}>
-          <p style={{ margin: "0 0 1rem 0", fontWeight: "800", fontSize: "0.8rem", textTransform: "uppercase", color: COLORS.textMuted }}>Agregar Ingrediente Base</p>
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-            <input 
-              value={ingForm.name} 
-              onChange={e => setIngForm({...ingForm, name: e.target.value})}
-              placeholder="Nombre del ingrediente (ej: Tomate)" 
-              style={inputStyle} 
+        <div
+          style={{
+            backgroundColor: COLORS.bg,
+            padding: "1.5rem",
+            borderRadius: "1.25rem",
+            marginBottom: "2rem",
+            border: `1px solid ${COLORS.border}`,
+          }}
+        >
+          <p
+            style={{
+              margin: "0 0 1rem 0",
+              fontWeight: "800",
+              fontSize: "0.8rem",
+              textTransform: "uppercase",
+              color: COLORS.textMuted,
+            }}
+          >
+            Agregar Ingrediente Base
+          </p>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
+          >
+            <input
+              value={ingForm.name}
+              onChange={(e) => setIngForm({ ...ingForm, name: e.target.value })}
+              placeholder="Nombre del ingrediente (ej: Tomate)"
+              style={inputStyle}
             />
             <div style={{ display: "flex", gap: "0.5rem" }}>
-              <input 
-                type="number" 
-                value={ingForm.quantity} 
-                onChange={e => setIngForm({...ingForm, quantity: e.target.value})}
-                placeholder="Gramaje/Cant" 
-                style={{ ...inputStyle, flex: 2 }} 
+              <input
+                type="number"
+                value={ingForm.quantity}
+                onChange={(e) =>
+                  setIngForm({ ...ingForm, quantity: e.target.value })
+                }
+                placeholder="Gramaje/Cant"
+                style={{ ...inputStyle, flex: 2 }}
               />
-              <select 
-                value={ingForm.unit} 
-                onChange={e => setIngForm({...ingForm, unit: e.target.value})}
+              <select
+                value={ingForm.unit}
+                onChange={(e) =>
+                  setIngForm({ ...ingForm, unit: e.target.value })
+                }
                 style={{ ...inputStyle, flex: 1 }}
               >
-                {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
+                {UNIDADES.map((u) => (
+                  <option key={u} value={u}>
+                    {u}
+                  </option>
+                ))}
               </select>
             </div>
-            <button 
+            <button
               onClick={handleAdd}
               disabled={adding}
-              style={{ width: "100%", padding: "0.75rem", borderRadius: "0.75rem", border: "none", backgroundColor: COLORS.secondary, color: "white", fontWeight: "700", cursor: "pointer" }}
+              style={{
+                width: "100%",
+                padding: "0.75rem",
+                borderRadius: "0.75rem",
+                border: "none",
+                backgroundColor: COLORS.secondary,
+                color: "white",
+                fontWeight: "700",
+                cursor: "pointer",
+              }}
             >
               {adding ? "Agregando..." : "Agregar Ingrediente"}
             </button>
@@ -308,69 +614,170 @@ function RecipeEditor({ dish, onClose, ingredients, refetchIngredients }) {
         </div>
 
         {/* Recipe List */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <p style={{ margin: "0 0 0.5rem 0", fontWeight: "800", fontSize: "0.8rem", textTransform: "uppercase", color: COLORS.textMuted }}>Ingredientes Actuales</p>
-          {recipeData?.DishIngredients?.map(ing => {
-            const masterIng = ingredients?.find(i => String(i.id) === String(ing.ingredient_id));
+        <div
+          style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}
+        >
+          <p
+            style={{
+              margin: "0 0 0.5rem 0",
+              fontWeight: "800",
+              fontSize: "0.8rem",
+              textTransform: "uppercase",
+              color: COLORS.textMuted,
+            }}
+          >
+            Ingredientes Actuales
+          </p>
+          {recipeData?.DishIngredients?.map((ing) => {
+            const masterIng = ingredients?.find(
+              (i) => String(i.id) === String(ing.ingredient_id),
+            );
             return (
-              <div key={ing.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1rem", backgroundColor: "white", border: `1px dashed ${COLORS.border}`, borderRadius: "1rem" }}>
+              <div
+                key={ing.id}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  padding: "1rem",
+                  backgroundColor: "white",
+                  border: `1px dashed ${COLORS.border}`,
+                  borderRadius: "1rem",
+                }}
+              >
                 <div>
-                  <p style={{ margin: 0, fontWeight: "700", fontSize: "0.95rem" }}>{masterIng?.name || "Ingrediente..."}</p>
-                  
+                  <p
+                    style={{
+                      margin: 0,
+                      fontWeight: "700",
+                      fontSize: "0.95rem",
+                    }}
+                  >
+                    {masterIng?.name || "Ingrediente..."}
+                  </p>
+
                   {editIngId === ing.id ? (
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "0.25rem" }}>
-                      <input 
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.5rem",
+                        marginTop: "0.25rem",
+                      }}
+                    >
+                      <input
                         type="number"
                         step="any"
                         value={editIngVal}
                         onChange={(e) => setEditIngVal(e.target.value)}
-                        style={{ ...inputStyle, width: "70px", padding: "0.2rem 0.4rem", margin: 0, fontSize: "0.8rem" }}
+                        style={{
+                          ...inputStyle,
+                          width: "70px",
+                          padding: "0.2rem 0.4rem",
+                          margin: 0,
+                          fontSize: "0.8rem",
+                        }}
                         autoFocus
                       />
-                      <select 
-                        value={editIngUnit} 
-                        onChange={e => setEditIngUnit(e.target.value)}
-                        style={{ ...inputStyle, width: "60px", padding: "0.2rem 0.4rem", margin: 0, fontSize: "0.8rem" }}
+                      <select
+                        value={editIngUnit}
+                        onChange={(e) => setEditIngUnit(e.target.value)}
+                        style={{
+                          ...inputStyle,
+                          width: "60px",
+                          padding: "0.2rem 0.4rem",
+                          margin: 0,
+                          fontSize: "0.8rem",
+                        }}
                       >
-                        {UNIDADES.map(u => <option key={u} value={u}>{u}</option>)}
+                        {UNIDADES.map((u) => (
+                          <option key={u} value={u}>
+                            {u}
+                          </option>
+                        ))}
                       </select>
-                      <button 
+                      <button
                         onClick={() => {
-                          updateDishIngredient({ variables: { id: ing.id, quantity: parseFloat(editIngVal), unit: editIngUnit } });
+                          updateDishIngredient({
+                            variables: {
+                              id: ing.id,
+                              quantity: parseFloat(editIngVal),
+                              unit: editIngUnit,
+                            },
+                          });
                           setEditIngId(null);
                         }}
-                        style={{ padding: "0.2rem 0.5rem", borderRadius: "0.5rem", border: "none", backgroundColor: COLORS.success, color: "white", cursor: "pointer", display: "flex", alignItems: "center" }}
+                        style={{
+                          padding: "0.2rem 0.5rem",
+                          borderRadius: "0.5rem",
+                          border: "none",
+                          backgroundColor: COLORS.success,
+                          color: "white",
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
                       >
                         <CheckCircle2 size={14} />
                       </button>
-                      <button 
+                      <button
                         onClick={() => setEditIngId(null)}
-                        style={{ padding: "0.2rem 0.5rem", borderRadius: "0.5rem", border: `1px solid ${COLORS.border}`, backgroundColor: "white", color: COLORS.text, cursor: "pointer", display: "flex", alignItems: "center" }}
+                        style={{
+                          padding: "0.2rem 0.5rem",
+                          borderRadius: "0.5rem",
+                          border: `1px solid ${COLORS.border}`,
+                          backgroundColor: "white",
+                          color: COLORS.text,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
                       >
                         <XCircle size={14} />
                       </button>
                     </div>
                   ) : (
-                    <p style={{ margin: "0.1rem 0 0 0", fontSize: "0.8rem", color: COLORS.primary, fontWeight: "700" }}>{ing.quantity} {ing.unit}</p>
+                    <p
+                      style={{
+                        margin: "0.1rem 0 0 0",
+                        fontSize: "0.8rem",
+                        color: COLORS.primary,
+                        fontWeight: "700",
+                      }}
+                    >
+                      {ing.quantity} {ing.unit}
+                    </p>
                   )}
                 </div>
-                
+
                 {editIngId !== ing.id && (
                   <div style={{ display: "flex", gap: "0.5rem" }}>
-                    <button 
+                    <button
                       onClick={() => {
                         setEditIngId(ing.id);
                         setEditIngVal(String(ing.quantity));
                         setEditIngUnit(ing.unit);
                       }}
-                      style={{ color: COLORS.textMuted, background: "none", border: "none", cursor: "pointer" }}
+                      style={{
+                        color: COLORS.textMuted,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
                       title="Editar gramaje"
                     >
                       <Edit3 size={18} />
                     </button>
-                    <button 
-                      onClick={() => removeIngredient({ variables: { id: ing.id } })}
-                      style={{ color: COLORS.danger, background: "none", border: "none", cursor: "pointer" }}
+                    <button
+                      onClick={() =>
+                        removeIngredient({ variables: { id: ing.id } })
+                      }
+                      style={{
+                        color: COLORS.danger,
+                        background: "none",
+                        border: "none",
+                        cursor: "pointer",
+                      }}
                       title="Eliminar de la receta"
                     >
                       <Trash2 size={18} />
@@ -380,10 +787,23 @@ function RecipeEditor({ dish, onClose, ingredients, refetchIngredients }) {
               </div>
             );
           })}
-          {(!recipeData?.DishIngredients || recipeData.DishIngredients.length === 0) && (
-            <div style={{ textAlign: "center", padding: "2rem", color: COLORS.textMuted }}>
-              <Scale size={32} opacity={0.2} style={{ marginBottom: "0.5rem" }} />
-              <p style={{ fontSize: "0.85rem", margin: 0 }}>No hay ingredientes en la receta aún.</p>
+          {(!recipeData?.DishIngredients ||
+            recipeData.DishIngredients.length === 0) && (
+            <div
+              style={{
+                textAlign: "center",
+                padding: "2rem",
+                color: COLORS.textMuted,
+              }}
+            >
+              <Scale
+                size={32}
+                opacity={0.2}
+                style={{ marginBottom: "0.5rem" }}
+              />
+              <p style={{ fontSize: "0.85rem", margin: 0 }}>
+                No hay ingredientes en la receta aún.
+              </p>
             </div>
           )}
         </div>
@@ -398,54 +818,129 @@ export default function MenuBank() {
   const [recipeDish, setRecipeDish] = useState(null);
   const [search, setSearch] = useState("");
 
-  const { data: dishesData, loading, refetch } = useQuery(GET_DISHES, {
-    variables: { onlyGlobal: true }
+  const {
+    data: dishesData,
+    loading,
+    refetch,
+  } = useQuery(GET_DISHES, {
+    variables: { onlyGlobal: true },
   });
 
   const { data: ingsData, refetch: refetchIngs } = useQuery(GET_INGREDIENTS, {
-    variables: { location_id: null }
+    variables: { location_id: null },
   });
 
-  const [deactivate] = useMutation(DEACTIVATE_DISH, { onCompleted: () => refetch() });
-  const [activate] = useMutation(ACTIVATE_DISH, { onCompleted: () => refetch() });
+  const [deactivate] = useMutation(DEACTIVATE_DISH, {
+    onCompleted: () => refetch(),
+  });
+  const [activate] = useMutation(ACTIVATE_DISH, {
+    onCompleted: () => refetch(),
+  });
 
-  const filteredDishes = dishesData?.dishes?.filter(d => 
-    d.name.toLowerCase().includes(search.toLowerCase())
-  ) || [];
+  const filteredDishes =
+    dishesData?.dishes?.filter((d) =>
+      d.name.toLowerCase().includes(search.toLowerCase()),
+    ) || [];
 
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "1rem" }}>
       {/* Header View */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2.5rem" }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: "2.5rem",
+        }}
+      >
         <div>
-          <h1 style={{ margin: 0, fontSize: "2rem", fontWeight: "900", color: COLORS.secondary, letterSpacing: "-0.03em" }}>Banco de Menú</h1>
-          <p style={{ margin: "0.25rem 0 0 0", color: COLORS.textMuted, fontWeight: "500" }}>Gestiona las recetas maestras de toda la cadena.</p>
+          <h1
+            style={{
+              margin: 0,
+              fontSize: "2rem",
+              fontWeight: "900",
+              color: COLORS.secondary,
+              letterSpacing: "-0.03em",
+            }}
+          >
+            Banco de Menú
+          </h1>
+          <p
+            style={{
+              margin: "0.25rem 0 0 0",
+              color: COLORS.textMuted,
+              fontWeight: "500",
+            }}
+          >
+            Gestiona las recetas maestras de toda la cadena.
+          </p>
         </div>
-        <button 
-          onClick={() => setEditorDish({})} 
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.75rem 1.5rem", backgroundColor: COLORS.primary, color: "white", border: "none", borderRadius: "1rem", fontWeight: "700", cursor: "pointer", boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)" }}
+        <button
+          onClick={() => setEditorDish({})}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            padding: "0.75rem 1.5rem",
+            backgroundColor: COLORS.primary,
+            color: "white",
+            border: "none",
+            borderRadius: "1rem",
+            fontWeight: "700",
+            cursor: "pointer",
+            boxShadow: "0 10px 15px -3px rgba(234, 88, 12, 0.3)",
+          }}
         >
-          <Plus size={20} /> Nuevo Plato Maestro
+          <Plus size={20} /> Nuevo Plato
         </button>
       </div>
 
       {/* Warning Box */}
-      <div style={{ backgroundColor: "#fffbeb", border: "1px solid #fde68a", padding: "1rem 1.5rem", borderRadius: "1rem", marginBottom: "2rem", display: "flex", gap: "1rem", alignItems: "center" }}>
+      <div
+        style={{
+          backgroundColor: "#fffbeb",
+          border: "1px solid #fde68a",
+          padding: "1rem 1.5rem",
+          borderRadius: "1rem",
+          marginBottom: "2rem",
+          display: "flex",
+          gap: "1rem",
+          alignItems: "center",
+        }}
+      >
         <AlertTriangle color={COLORS.warning} size={24} />
-        <p style={{ margin: 0, color: "#92400e", fontSize: "0.85rem", fontWeight: "600" }}>
-          <strong>Aviso de Gerencia:</strong> Cualquier cambio en los gramajes o ingredientes aquí se reflejará instantáneamente en los costos de todas las sedes.
+        <p
+          style={{
+            margin: 0,
+            color: "#92400e",
+            fontSize: "0.85rem",
+            fontWeight: "600",
+          }}
+        >
+          <strong>Aviso de Gerencia:</strong> Cualquier cambio en los gramajes o
+          ingredientes aquí se reflejará instantáneamente en los costos de todas
+          las sedes.
         </p>
       </div>
 
       {/* Search & Filter Bar */}
       <div style={{ display: "flex", gap: "1rem", marginBottom: "2rem" }}>
         <div style={{ flex: 1, position: "relative" }}>
-          <Search style={{ position: "absolute", left: "1rem", top: "50%", transform: "translateY(-50%)", color: COLORS.textMuted }} size={18} />
-          <input 
+          <Search
+            style={{
+              position: "absolute",
+              left: "1rem",
+              top: "50%",
+              transform: "translateY(-50%)",
+              color: COLORS.textMuted,
+            }}
+            size={18}
+          />
+          <input
             value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Buscar por nombre de plato..." 
-            style={{ ...inputStyle, paddingLeft: "3rem", marginBottom: 0 }} 
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Buscar por nombre de plato..."
+            style={{ ...inputStyle, paddingLeft: "3rem", marginBottom: 0 }}
           />
         </div>
       </div>
@@ -454,40 +949,166 @@ export default function MenuBank() {
       {loading ? (
         <p>Cargando banco de datos...</p>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "1.5rem" }}>
-          {filteredDishes.map(dish => {
-            const styles = CATEGORIA_ESTILOS[dish.category] || CATEGORIA_ESTILOS.principal;
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: "1.5rem",
+          }}
+        >
+          {filteredDishes.map((dish) => {
+            const styles =
+              CATEGORIA_ESTILOS[dish.category] || CATEGORIA_ESTILOS.principal;
             return (
-              <div key={dish.id} style={{ backgroundColor: "white", borderRadius: "1.5rem", padding: "1.5rem", border: `1px solid ${COLORS.border}`, boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)", position: "relative", transition: "transform 0.2s", cursor: "default" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1rem" }}>
-                   <span style={{ backgroundColor: styles.bg, color: styles.text, border: `1px solid ${styles.border}`, padding: "0.25rem 0.75rem", borderRadius: "2rem", fontSize: "0.7rem", fontWeight: "800", textTransform: "uppercase" }}>
+              <div
+                key={dish.id}
+                style={{
+                  backgroundColor: "white",
+                  borderRadius: "1.5rem",
+                  padding: "1.5rem",
+                  border: `1px solid ${COLORS.border}`,
+                  boxShadow: "0 4px 6px -1px rgba(0,0,0,0.05)",
+                  position: "relative",
+                  transition: "transform 0.2s",
+                  cursor: "default",
+                }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <span
+                    style={{
+                      backgroundColor: styles.bg,
+                      color: styles.text,
+                      border: `1px solid ${styles.border}`,
+                      padding: "0.25rem 0.75rem",
+                      borderRadius: "2rem",
+                      fontSize: "0.7rem",
+                      fontWeight: "800",
+                      textTransform: "uppercase",
+                    }}
+                  >
                     {dish.category}
                   </span>
-                  {dish.is_active ? <CheckCircle2 size={16} color={COLORS.success} /> : <XCircle size={16} color={COLORS.danger} />}
+                  {dish.is_active ? (
+                    <CheckCircle2 size={16} color={COLORS.success} />
+                  ) : (
+                    <XCircle size={16} color={COLORS.danger} />
+                  )}
                 </div>
 
-                <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.1rem", fontWeight: "800", color: COLORS.secondary }}>{dish.name}</h3>
-                <p style={{ margin: "0 0 1.5rem 0", fontSize: "0.85rem", color: COLORS.textMuted, height: "2.5rem", overflow: "hidden", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical" }}>
+                <div
+                  style={{
+                    height: "160px",
+                    borderRadius: "1rem",
+                    backgroundColor: COLORS.bg,
+                    backgroundImage: dish.image_url
+                      ? `url(${dish.image_url})`
+                      : "none",
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    border: `1px solid ${COLORS.border}`,
+                    marginBottom: "1rem",
+                    marginTop: "-0.5rem",
+                  }}
+                >
+                  {!dish.image_url && (
+                    <span
+                      style={{
+                        color: COLORS.textMuted,
+                        fontSize: "0.875rem",
+                        fontWeight: "600",
+                      }}
+                    >
+                      Sin foto
+                    </span>
+                  )}
+                </div>
+
+                <h3
+                  style={{
+                    margin: "0 0 0.5rem 0",
+                    fontSize: "1.1rem",
+                    fontWeight: "800",
+                    color: COLORS.secondary,
+                  }}
+                >
+                  {dish.name}
+                </h3>
+                <p
+                  style={{
+                    margin: "0 0 1.5rem 0",
+                    fontSize: "0.85rem",
+                    color: COLORS.textMuted,
+                    height: "2.5rem",
+                    overflow: "hidden",
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                  }}
+                >
                   {dish.description || "Sin descripción proporcionada."}
                 </p>
 
                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                  <button 
+                  <button
                     onClick={() => setRecipeDish(dish)}
-                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: "0.4rem", padding: "0.6rem", borderRadius: "0.75rem", border: `1.5px solid ${COLORS.primary}`, backgroundColor: "white", color: COLORS.primary, fontWeight: "700", fontSize: "0.8rem", cursor: "pointer" }}
+                    style={{
+                      flex: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: "0.4rem",
+                      padding: "0.6rem",
+                      borderRadius: "0.75rem",
+                      border: `1.5px solid ${COLORS.primary}`,
+                      backgroundColor: "white",
+                      color: COLORS.primary,
+                      fontWeight: "700",
+                      fontSize: "0.8rem",
+                      cursor: "pointer",
+                    }}
                   >
                     <Scale size={16} /> Receta
                   </button>
-                  <button 
+                  <button
                     onClick={() => setEditorDish(dish)}
-                    style={{ padding: "0.6rem", borderRadius: "0.75rem", border: `1.5px solid ${COLORS.border}`, backgroundColor: "white", color: COLORS.textMuted, cursor: "pointer" }}
+                    style={{
+                      padding: "0.6rem",
+                      borderRadius: "0.75rem",
+                      border: `1.5px solid ${COLORS.border}`,
+                      backgroundColor: "white",
+                      color: COLORS.textMuted,
+                      cursor: "pointer",
+                    }}
                   >
                     <Edit3 size={16} />
                   </button>
-                  <button 
-                    onClick={() => dish.is_active ? deactivate({ variables: { id: dish.id } }) : activate({ variables: { id: dish.id } })}
-                    style={{ padding: "0.6rem", borderRadius: "0.75rem", border: `1.5px solid ${dish.is_active ? COLORS.danger : COLORS.success}20`, backgroundColor: `${dish.is_active ? COLORS.danger : COLORS.success}10`, color: dish.is_active ? COLORS.danger : COLORS.success, cursor: "pointer" }}
-                    title={dish.is_active ? "Desactivar Plato" : "Activar Plato"}
+                  <button
+                    onClick={() =>
+                      dish.is_active
+                        ? deactivate({ variables: { id: dish.id } })
+                        : activate({ variables: { id: dish.id } })
+                    }
+                    style={{
+                      padding: "0.6rem",
+                      borderRadius: "0.75rem",
+                      border: `1.5px solid ${dish.is_active ? COLORS.danger : COLORS.success}20`,
+                      backgroundColor: `${dish.is_active ? COLORS.danger : COLORS.success}10`,
+                      color: dish.is_active ? COLORS.danger : COLORS.success,
+                      cursor: "pointer",
+                    }}
+                    title={
+                      dish.is_active ? "Desactivar Plato" : "Activar Plato"
+                    }
                   >
                     <Power size={16} />
                   </button>
@@ -500,19 +1121,22 @@ export default function MenuBank() {
 
       {/* Modals */}
       {editorDish && (
-        <DishEditorModal 
-          dish={editorDish.id ? editorDish : null} 
-          onClose={() => setEditorDish(null)} 
-          onSaved={() => { setEditorDish(null); refetch(); }} 
+        <DishEditorModal
+          dish={editorDish.id ? editorDish : null}
+          onClose={() => setEditorDish(null)}
+          onSaved={() => {
+            setEditorDish(null);
+            refetch();
+          }}
         />
       )}
 
       {recipeDish && (
-        <RecipeEditor 
-          dish={recipeDish} 
+        <RecipeEditor
+          dish={recipeDish}
           ingredients={ingsData?.ingredients}
           refetchIngredients={refetchIngs}
-          onClose={() => setRecipeDish(null)} 
+          onClose={() => setRecipeDish(null)}
         />
       )}
     </div>

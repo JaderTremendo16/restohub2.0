@@ -21,6 +21,8 @@ module.exports = gql`
     address: String!
     timezone: String
     countryId: ID!
+    lat: Float
+    lng: Float
     admin: User
   }
 
@@ -93,6 +95,8 @@ module.exports = gql`
       address: String!
       countryId: ID!
       timezone: String
+      lat: Float
+      lng: Float
     ): Location!
     createAdmin(input: CreateAdminInput!): User!
   }
