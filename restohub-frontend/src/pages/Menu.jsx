@@ -131,7 +131,45 @@ function ModalPlato({
     description: dish?.description ?? "",
     category: dish?.category ?? "principal",
     location_id: dish?.location_id ?? locationId,
+    image_url: dish?.image_url ?? "",
   });
+  
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
+
+    if (!cloudName || !uploadPreset) {
+      alert("Faltan credenciales de Cloudinary en el archivo .env (VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET)");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("file", file);
+    data.append("upload_preset", uploadPreset);
+
+    setUploadingImage(true);
+    try {
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: "POST",
+        body: data,
+      });
+      const result = await res.json();
+      if (result.secure_url) {
+        setForm({ ...form, image_url: result.secure_url });
+      } else {
+        alert("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
+      }
+    } catch (error) {
+      alert("Error al subir la imagen: " + error.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const isEdit = !!dish?.id;
   const [createDish, { loading: creating }] = useMutation(CREATE_DISH, {
@@ -268,6 +306,40 @@ function ModalPlato({
             />
           </div>
 
+          <div>
+            <label style={labelStyle}>Imagen del plato (Opcional)</label>
+            <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+              {form.image_url ? (
+                <div style={{ position: "relative", flexShrink: 0 }}>
+                  <img 
+                    src={form.image_url} 
+                    alt="Preview" 
+                    style={{ width: "64px", height: "64px", objectFit: "cover", borderRadius: "0.5rem", border: "1px solid #e5e7eb" }} 
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setForm({ ...form, image_url: "" })}
+                    style={{ position: "absolute", top: -8, right: -8, background: "#ef4444", color: "white", borderRadius: "50%", width: 24, height: 24, border: "none", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.8rem", padding: 0 }}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : null}
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload} 
+                disabled={uploadingImage}
+                style={{
+                  ...inputStyle,
+                  flex: 1,
+                  padding: "0.4rem",
+                }}
+              />
+            </div>
+            {uploadingImage && <p style={{ fontSize: "0.75rem", color: "#ea580c", marginTop: "0.4rem", margin: 0 }}>Subiendo imagen a la nube...</p>}
+          </div>
+
           <div style={{ display: "flex", gap: "1rem" }}>
             <div style={{ flex: 1 }}>
               <label style={labelStyle}>Categoría</label>
@@ -386,6 +458,23 @@ function DishCard({
         >
           {dish.is_active ? "Disponible" : "No disponible"}
         </span>
+      </div>
+
+      {/* Imagen del plato */}
+      <div style={{
+        height: "160px",
+        borderRadius: "0.75rem",
+        backgroundColor: "#f9fafb",
+        backgroundImage: dish.image_url ? `url(${dish.image_url})` : "none",
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "1px solid #e5e7eb",
+        marginTop: "-0.5rem" // Para acercarlo un poco a los badges
+      }}>
+        {!dish.image_url && <span style={{ color: "#9ca3af", fontSize: "0.875rem", fontWeight: "500" }}>Sin imagen</span>}
       </div>
 
       {/* Nombre del plato */}

@@ -9,6 +9,7 @@ export const GET_DISHES = gql`
       category
       location_id
       is_active
+      image_url
       ingredients {
         id
         ingredient {
@@ -35,6 +36,7 @@ export const GET_DISH = gql`
       description
       category
       is_active
+      image_url
     }
   }
 `;
@@ -72,6 +74,7 @@ export const CREATE_DISH = gql`
       description
       category
       is_active
+      image_url
     }
   }
 `;
@@ -85,6 +88,7 @@ export const UPDATE_DISH = gql`
       category
       location_id
       is_active
+      image_url
     }
   }
 `;

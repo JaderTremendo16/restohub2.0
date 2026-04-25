@@ -29,6 +29,7 @@ const typeDefs = gql`
     category: DishCategory!
     is_active: Boolean!
     location_id: Int
+    image_url: String
     ingredients: [DishIngredient!]!
     prices: [MenuPrice!]!
     created_at: String
@@ -90,6 +91,7 @@ const typeDefs = gql`
     description: String
     category: DishCategory!
     location_id: Int
+    image_url: String
   }
 
   input UpdateDishInput {
@@ -98,6 +100,7 @@ const typeDefs = gql`
     category: DishCategory
     location_id: Int
     is_active: Boolean
+    image_url: String
   }
 
   input AddDishIngredientInput {
