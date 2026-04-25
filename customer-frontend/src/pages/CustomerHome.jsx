@@ -23,12 +23,12 @@ const CustomerHome = () => {
   const navigate = useNavigate();
 
   const { data: loyaltyData } = useQuery(GET_LOYALTY_ACCOUNT, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user,
   });
 
   const { data: historyData } = useQuery(GET_POINT_HISTORY, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user,
   });
 
@@ -85,15 +85,18 @@ const CustomerHome = () => {
   };
 
   const combinedActivity = [
-    ...orders.map((o) => ({
-      id: o.id,
-      type: "purchase",
-      title: "Compra en Sede",
-      desc: o.branch,
-      value: `-$${o.totalPrice.toLocaleString()}`,
-      points: `+${Math.floor(o.totalPrice / 1000)}`,
-      date: o.createdAt,
-    })),
+    // Solo mostramos como "Compra" si el precio es > 0, para no duplicar con el evento de "Canje"
+    ...orders
+      .filter(o => o.totalPrice > 0)
+      .map((o) => ({
+        id: o.id,
+        type: "purchase",
+        title: "Compra en Sede",
+        desc: o.branch,
+        value: `-$${o.totalPrice.toLocaleString()}`,
+        points: `+${Math.floor(o.totalPrice)}`, // 1 USD = 1 Punto
+        date: o.createdAt,
+      })),
     ...history.map((h, i) => ({
       id: `h-${i}`,
       type: "loyalty",

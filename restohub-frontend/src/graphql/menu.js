@@ -9,6 +9,7 @@ export const GET_DISHES = gql`
       category
       location_id
       is_active
+      image_url
       ingredients {
         id
         ingredient {
@@ -35,6 +36,7 @@ export const GET_DISH = gql`
       description
       category
       is_active
+      image_url
     }
   }
 `;
@@ -72,6 +74,7 @@ export const CREATE_DISH = gql`
       description
       category
       is_active
+      image_url
     }
   }
 `;
@@ -85,6 +88,7 @@ export const UPDATE_DISH = gql`
       category
       location_id
       is_active
+      image_url
     }
   }
 `;
@@ -183,5 +187,21 @@ export const UPSERT_INGREDIENT_COST = gql`
       location_id
       cost_per_unit
     }
+  }
+`;
+
+export const GET_CLOUDINARY_IMAGES = gql`
+  query GetCloudinaryImages {
+    cloudinaryImages {
+      public_id
+      url
+      secure_url
+    }
+  }
+`;
+
+export const DELETE_CLOUDINARY_IMAGE = gql`
+  mutation DeleteCloudinaryImage($public_id: String!) {
+    deleteCloudinaryImage(public_id: $public_id)
   }
 `;

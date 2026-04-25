@@ -706,10 +706,10 @@ function InvoiceModal({ order, onClose, showMsg }) {
                 <div>
                   <span style={s.muted}>MEDIO DE PAGO: </span>
                   <span style={{ fontWeight: "700", color: "#1976d2" }}>
-                    {invoiceData.payment_method === "paypal" || order.channel === "web"
-                      ? "💳 PayPal"
-                      : invoiceData.payment_method === "canje_puntos"
+                    {invoiceData.payment_method === "reward"
                       ? "🎁 Canje de Puntos"
+                      : invoiceData.payment_method === "paypal" || order.channel === "web"
+                      ? "💳 PayPal"
                       : "💵 Efectivo"}
                   </span>
                 </div>
@@ -1196,6 +1196,7 @@ export default function OrdersDashboard() {
     if (!locationId) return true;
     return String(o.restaurant_id) === String(locationId);
   });
+  const otherBranchesCount = rawOrders.length - orders.length;
 
   const filtered =
     filterStatus === "all"
@@ -1232,7 +1233,7 @@ export default function OrdersDashboard() {
         <div>
           <h1 style={s.title}>Dashboard de Órdenes</h1>
           <span style={s.subtitle}>
-            {orders.length} pedidos · {filtered.length} visibles · Sede: {myLocationName}
+            Viendo {filtered.length} pedidos de {orders.length} totales en {myLocationName}
           </span>
         </div>
 

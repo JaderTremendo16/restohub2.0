@@ -5,6 +5,8 @@ import {
   COMPLETE_ORDER_MUTATION,
   CREATE_REAL_ORDER,
   ADD_ORDER_ITEMS,
+  GET_CART,
+  ADD_TO_CART
 } from "../graphql/operations";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -37,10 +39,20 @@ const DigitalMenu = () => {
 
   const navigate = useNavigate();
 
-  const [completeOrder] = useMutation(COMPLETE_ORDER_MUTATION, {
-    refetchQueries: ["GetOrders"],
-    awaitRefetchQueries: true,
+  const { data: cartData } = useQuery(GET_CART, {
+    variables: { customerId: user?.id },
+    skip: !user,
   });
+
+  const [addToCart, { loading: addingToCart }] = useMutation(ADD_TO_CART, {
+    refetchQueries: ["GetCart"],
+    onCompleted: () => {
+      setOrderStatus({ show: true, text: "Producto agregado al carrito." });
+      setTimeout(() => setOrderStatus({ show: false, text: "" }), 3000);
+    },
+  });
+
+  const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
   const [createRealOrder] = useMutation(CREATE_REAL_ORDER);
   const [addOrderItems, { loading: ordering }] = useMutation(ADD_ORDER_ITEMS, {
@@ -74,70 +86,20 @@ const DigitalMenu = () => {
   const { data: locData } = useQuery(GET_LOCATIONS);
   const locations = locData?.locations || [];
 
-  const handleOrder = async (dish) => {
-    if (
-      !window.confirm(
-        `¿Confirmar orden de ${dish.name} por $${dish.price.toLocaleString()}?`,
-      )
-    )
-      return;
-
+  const handleAddToCart = async (dish) => {
     try {
-      // Intentar resolver el ID numérico de la sede a partir del nombre en el perfil del usuario
-      const myLocation = locations.find(
-        (l) =>
-          l.name.trim().toLowerCase() ===
-          (user.branch || "Colombia").trim().toLowerCase(),
-      );
-      const restaurantId = myLocation
-        ? String(myLocation.id)
-        : user.branch || "2";
-
-      // 1. Crear el pedido en orders-service para que el staff (cocina/POS) lo prepare
-      const { data: orderData } = await createRealOrder({
+      await addToCart({
         variables: {
-          restaurant_id: restaurantId,
-          customer_id: user.id || "customer_123",
-          channel: "web",
-          priority: "normal",
-        },
+          cid: user?.id,
+          pid: String(dish.id),
+          name: dish.name,
+          price: parseFloat(dish.price),
+          qty: 1,
+          reward: false
+        }
       });
-      const orderId = orderData.createOrder.id;
-
-      // 2. Agregar el plato al pedido en orders-service
-      await addOrderItems({
-        variables: {
-          order_id: orderId,
-          items: [
-            {
-              product_id: dish.id ? String(dish.id) : `PROD-${Math.random()}`,
-              product_name: dish.name,
-              quantity: 1,
-              unit_price: parseFloat(dish.price) || 30000,
-              notes: "",
-            },
-          ],
-        },
-      });
-
-      // 3. Registrar el pedido en el historial interno del cliente (customer-service)
-      const items = JSON.stringify([
-        { name: dish.name, price: dish.price, qty: 1 },
-      ]);
-      await completeOrder({
-        variables: {
-          cid: user.id,
-          items,
-          total: parseFloat(dish.price) || 30000,
-          branch: user.branch || "General",
-          orderId: orderId,
-        },
-      });
-
-      // En lugar de dar puntos ficticios, lo redirigimos a history para ver cómo avanza
-      navigate("/history");
     } catch (err) {
-      alert("Error al enviar orden: " + err.message);
+      alert("Error al agregar al carrito: " + err.message);
     }
   };
 
@@ -186,6 +148,19 @@ const DigitalMenu = () => {
               ))}
             </select>
           </div>
+
+          <button 
+            onClick={() => navigate('/cart')}
+            className="bg-brand-orange text-white px-6 rounded-2xl flex items-center gap-3 shadow-lg shadow-brand-orange/30 hover:scale-105 transition-all relative"
+          >
+            <ShoppingBag size={20} />
+            <span className="font-black text-xs uppercase tracking-widest">{cartItemCount} items</span>
+            {cartItemCount > 0 && (
+              <div className="absolute -top-2 -right-2 w-6 h-6 bg-white text-brand-orange rounded-full flex items-center justify-center text-[10px] font-black border-2 border-brand-orange">
+                {cartItemCount}
+              </div>
+            )}
+          </button>
         </div>
       </div>
 
@@ -251,15 +226,15 @@ const DigitalMenu = () => {
 
                 <div className="flex gap-3 pt-6 border-t border-slate-50 mt-auto">
                   <button
-                    onClick={() => handleOrder(dish)}
-                    disabled={ordering}
+                    onClick={() => handleAddToCart(dish)}
+                    disabled={addingToCart}
                     className="flex-1 py-4 bg-brand-orange text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-orange/20 active:scale-95 group/btn"
                   >
                     <ShoppingBag
                       size={16}
                       className="group-hover/btn:translate-y-[-1px] transition-transform"
                     />
-                    Ordenar
+                    {addingToCart ? "Agregando..." : "Agregar al Carrito"}
                   </button>
                   <button
                     onClick={() => setSelectedDishForRating(dish.name)}

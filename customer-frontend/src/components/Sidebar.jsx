@@ -1,6 +1,8 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useQuery } from '@apollo/client/react';
 import { useAuth } from '../context/AuthContext';
+import { GET_CART } from '../graphql/operations';
 import { 
   BarChart2, 
   Users, 
@@ -12,12 +14,19 @@ import {
   UtensilsCrossed,
   History,
   LogOut,
-  Settings
+  Settings,
+  ShoppingBag
 } from 'lucide-react';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'general_manager';
+
+  const { data: cartData } = useQuery(GET_CART, {
+    variables: { customerId: user?.id },
+    skip: !user,
+  });
+  const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
   const NavItem = ({ to, icon: Icon, label, end = false }) => (
     <NavLink
@@ -57,6 +66,7 @@ const Sidebar = () => {
         <NavItem to="/menu" icon={UtensilsCrossed} label="Menú Digital" />
         <NavItem to="/history" icon={History} label="Mis Pedidos" />
         <NavItem to="/rewards" icon={Gift} label="Premios" />
+        <NavItem to="/cart" icon={ShoppingBag} label={`Mi Carrito (${cartItemCount})`} />
       </nav>
 
       <div className="mt-auto space-y-2 pt-6 border-t border-white/5">

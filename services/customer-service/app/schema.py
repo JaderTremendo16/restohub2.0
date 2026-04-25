@@ -64,6 +64,22 @@ class OrderType:
 
 
 @strawberry.type
+class CartItemType:
+    product_id: str
+    name: str
+    price: float
+    quantity: int
+    is_reward: bool
+
+
+@strawberry.type
+class CartType:
+    customer_id: str
+    items: List[CartItemType]
+    # delivery_address se omite por simplicidad si no se usa extensivamente todavía
+
+
+@strawberry.type
 class CustomerAuthPayload:
     user: UserType
     message: str
@@ -178,6 +194,24 @@ class Query:
         result = [_map_order(o) for o in orders]
         db.close()
         return result
+
+    @strawberry.field
+    def cart(self, customer_id: str) -> CartType:
+        """Obtiene el carrito actual del cliente desde Redis."""
+        from app.redis_client import CartManager
+        data = CartManager.get_cart(customer_id)
+        return CartType(
+            customer_id=data["customer_id"],
+            items=[
+                CartItemType(
+                    product_id=i["product_id"],
+                    name=i["name"],
+                    price=float(i["price"]),
+                    quantity=int(i["quantity"]),
+                    is_reward=i.get("is_reward", False)
+                ) for i in data["items"]
+            ]
+        )
 
 
 # ─── Mutations ─────────────────────────────────────────────────────────────
@@ -360,6 +394,89 @@ class Mutation:
         except Exception as e:
             db.rollback()
             raise ValueError(f"Error al completar orden: {str(e)}")
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def add_item_to_cart(
+        self,
+        customer_id: str,
+        product_id: str,
+        name: str,
+        price: float,
+        quantity: int = 1,
+        is_reward: bool = False
+    ) -> CartType:
+        from app.redis_client import CartManager
+        CartManager.add_item(customer_id, {
+            "product_id": product_id,
+            "name": name,
+            "price": price,
+            "quantity": quantity,
+            "is_reward": is_reward
+        })
+        return self.cart(customer_id)
+
+    @strawberry.mutation
+    def remove_item_from_cart(self, customer_id: str, product_id: str) -> CartType:
+        from app.redis_client import CartManager
+        CartManager.remove_item(customer_id, product_id)
+        return self.cart(customer_id)
+
+    @strawberry.mutation
+    def update_cart_item_quantity(self, customer_id: str, product_id: str, quantity: int) -> CartType:
+        from app.redis_client import CartManager
+        CartManager.update_quantity(customer_id, product_id, quantity)
+        return self.cart(customer_id)
+
+    @strawberry.mutation
+    def clear_cart(self, customer_id: str) -> bool:
+        from app.redis_client import CartManager
+        return CartManager.clear_cart(customer_id)
+
+    @strawberry.mutation
+    async def create_paypal_order(self, total: float) -> str:
+        from app.paypal_client import PayPalClient
+        order_id = await PayPalClient.create_order(total)
+        return order_id
+
+    @strawberry.mutation
+    async def capture_paypal_order(
+        self,
+        paypal_order_id: str,
+        customer_id: str,
+        restaurant_id: str,
+        items_json: str,
+        total: float
+    ) -> str:
+        from app.paypal_client import PayPalClient
+        from app.redis_client import CartManager
+        
+        # 1. Capturar en PayPal
+        success = await PayPalClient.capture_order(paypal_order_id)
+        if not success and not paypal_order_id.startswith("CASH_") and not paypal_order_id.startswith("FREE_"):
+            raise ValueError("No se pudo capturar el pago en PayPal.")
+
+        # 2. Guardar en historial local (customer-service)
+        db = SessionLocal()
+        try:
+            new_order = Order(
+                id=str(uuid.uuid4()),
+                customer_id=customer_id,
+                items=items_json,
+                total_price=total,
+                branch=restaurant_id
+            )
+            db.add(new_order)
+            db.commit()
+            
+            # 3. Limpiar carrito
+            CartManager.clear_cart(customer_id)
+            
+            return "Pago capturado y orden registrada."
+        except Exception as e:
+            db.rollback()
+            raise ValueError(f"Error al registrar orden: {str(e)}")
         finally:
             db.close()
 

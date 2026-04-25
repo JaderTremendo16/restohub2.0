@@ -3,6 +3,8 @@
 node_modules/
 jspm_packages/
 web_modules/
+__pycache__/
+*.pyc
 
 # --- CONFIGURACIÓN Y SECRETOS ---
 # Nunca subir credenciales de DB o llaves de API

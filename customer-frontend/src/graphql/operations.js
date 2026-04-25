@@ -1,5 +1,17 @@
 import { gql } from "@apollo/client";
 
+export const CREATE_PAYPAL_ORDER = gql`
+  mutation CreatePaypalOrder($total: Float!) {
+    createPaypalOrder(total: $total)
+  }
+`;
+
+export const CAPTURE_PAYPAL_ORDER = gql`
+  mutation CapturePaypalOrder($paypalOrderId: String!, $cid: String!, $rid: String!, $itemsJson: String!, $total: Float!) {
+    capturePaypalOrder(paypalOrderId: $paypalOrderId, customerId: $cid, restaurantId: $rid, itemsJson: $itemsJson, total: $total)
+  }
+`;
+
 export const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
     loginUser(email: $email, password: $password) {
@@ -410,5 +422,64 @@ export const REDEEM_POINTS_MUTATION = gql`
       message
       remainingPoints
     }
+  }
+`;
+
+export const GET_CART = gql`
+  query GetCart($customerId: String!) {
+    cart(customerId: $customerId) {
+      customerId
+      items {
+        productId: productId
+        name
+        price
+        quantity
+        isReward: isReward
+      }
+    }
+  }
+`;
+
+export const ADD_TO_CART = gql`
+  mutation AddToCart($cid: String!, $pid: String!, $name: String!, $price: Float!, $qty: Int!, $reward: Boolean) {
+    addItemToCart(customerId: $cid, productId: $pid, name: $name, price: $price, quantity: $qty, isReward: $reward) {
+      customerId
+      items {
+        productId: productId
+        name
+        quantity
+      }
+    }
+  }
+`;
+
+export const REMOVE_FROM_CART = gql`
+  mutation RemoveFromCart($cid: String!, $pid: String!) {
+    removeItemFromCart(customerId: $cid, productId: $pid) {
+      customerId
+      items {
+        productId: productId
+        name
+      }
+    }
+  }
+`;
+
+export const UPDATE_CART_QTY = gql`
+  mutation UpdateCartQty($cid: String!, $pid: String!, $qty: Int!) {
+    updateCartItemQuantity(customerId: $cid, productId: $pid, quantity: $qty) {
+      customerId
+      items {
+        productId: productId
+        name
+        quantity
+      }
+    }
+  }
+`;
+
+export const CLEAR_CART = gql`
+  mutation ClearCart($cid: String!) {
+    clearCart(customerId: $cid)
   }
 `;

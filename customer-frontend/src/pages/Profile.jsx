@@ -43,7 +43,7 @@ const Profile = () => {
     e.preventDefault();
     updateProfile({
       variables: {
-        id: user.id,
+        id: user?.id,
         ...formData,
         city: "Sede" // Valor por defecto ya que eliminamos el campo ciudad
       }

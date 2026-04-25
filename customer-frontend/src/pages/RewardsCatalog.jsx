@@ -7,12 +7,14 @@ import {
   CREATE_REAL_ORDER,
   ADD_ORDER_ITEMS,
   GET_LOCATIONS,
+  GET_CART,
+  ADD_TO_CART
 } from '../graphql/operations';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
   Gift, Wallet, CheckCircle2, XCircle, Info,
-  Sparkles, ChefHat, Loader2, Tag,
+  Sparkles, ChefHat, Loader2, Tag, ShoppingCart, Plus
 } from 'lucide-react';
 
 const RewardsCatalog = () => {
@@ -29,7 +31,7 @@ const RewardsCatalog = () => {
   });
 
   const { data: loyaltyData, refetch: refetchLoyalty } = useQuery(GET_LOYALTY_ACCOUNT, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user,
     notifyOnNetworkStatusChange: true,
   });
@@ -49,91 +51,39 @@ const RewardsCatalog = () => {
     setTimeout(() => setMsg({ type: '', text: '' }), 6000);
   };
 
-  const handleRedeem = async (reward) => {
+  const { data: cartData } = useQuery(GET_CART, {
+    variables: { customerId: user?.id },
+    skip: !user,
+  });
+
+  const [addToCart, { loading: addingToCart }] = useMutation(ADD_TO_CART, {
+    refetchQueries: ['GetCart'],
+    onCompleted: () => {
+      showMsg('success', 'Premio agregado al carrito correctamente.');
+    },
+  });
+
+  const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+
+  const handleAddToCartReward = async (reward) => {
     if (points < reward.pointsCost) {
       showMsg('error', `Necesitas ${reward.pointsCost} puntos. Solo tienes ${points}.`);
       return;
     }
-    if (!window.confirm(
-      `¿Canjear "${reward.name}" por ${reward.pointsCost} puntos?\n\nSe creará automáticamente un pedido gratuito en el restaurante.`
-    )) return;
 
-    setClaimingId(reward.id);
     try {
-      console.log(`[Rewards] Iniciando canje de "${reward.name}" para cliente ${user.id}`);
-      
-      // 1. Descontar puntos en loyalty-service
-      const { data: redeemData } = await redeemPoints({
-        variables: { cid: user.id, rid: reward.id },
-      });
-
-      if (!redeemData?.redeemPoints?.success) {
-        showMsg('error', redeemData?.redeemPoints?.message || 'Error al canjear puntos.');
-        setClaimingId(null);
-        return;
-      }
-
-      console.log(`[Rewards] Puntos descontados con éxito. Creando orden en orders-service...`);
-
-      // 2. Crear la orden real en orders-service
-      // Resolvemos el ID numérico de la sede
-      const { data: locData } = await client.query({ query: GET_LOCATIONS });
-      const locationsArr = locData?.locations || [];
-      const myLocation = locationsArr.find(l => 
-        l.name.trim().toLowerCase() === (user.branch || "Colombia").trim().toLowerCase()
-      );
-      const targetRestaurantId = myLocation ? String(myLocation.id) : (user.branch || "2");
-      
-      const { data: orderData, errors: orderErrors } = await createRealOrder({
+      await addToCart({
         variables: {
-          restaurant_id: targetRestaurantId,
-          customer_id:   String(user.id),
-          channel:       'web',
-          priority:      'normal',
-        },
+          cid: user?.id,
+          pid: `reward-${reward.id}`,
+          name: `🎁 ${reward.name} (Canje)`,
+          price: 0,
+          qty: 1,
+          reward: true
+        }
       });
-
-      if (orderErrors || !orderData?.createOrder?.id) {
-        throw new Error('No se pudo crear el pedido en el sistema de órdenes.');
-      }
-
-      const orderId = orderData.createOrder.id;
-      console.log(`[Rewards] Orden creada: ${orderId}. Agregando ítem gratuito...`);
-
-      // 3. Agregar el ítem del premio a $0
-      const { data: itemData, errors: itemErrors } = await addOrderItems({
-        variables: {
-          order_id: orderId,
-          items: [{
-            product_id:   `reward-${reward.id}`,
-            product_name: `🎁 ${reward.name} (Puntos)`,
-            quantity:     1,
-            unit_price:   0,
-            notes:        `Premio canjeado con ${reward.pointsCost} puntos`,
-          }],
-        },
-      });
-
-      if (itemErrors || !itemData?.addOrderItems) {
-        console.warn('[Rewards] El ítem se agregó con errores, pero la orden existe.');
-      }
-
-      console.log(`[Rewards] Flujo completado con éxito para orden ${orderId}`);
-
-      // 4. Refrescar datos y notificar
-      await Promise.all([refetchRewards(), refetchLoyalty()]);
-      showMsg(
-        'success',
-        `¡${reward.name} canjeado! Se ha generado tu pedido gratuito en el restaurante.`
-      );
-
-      // 5. Redirigir a historial de pedidos después de 2s
-      setTimeout(() => navigate('/history'), 2500);
     } catch (err) {
-      console.error('[Rewards] Error fatal en el flujo de canje:', err);
-      showMsg('error', `Error en el proceso: ${err.message}`);
-    } finally {
-      setClaimingId(null);
+      showMsg('error', "Error al agregar al carrito: " + err.message);
     }
   };
 
@@ -164,6 +114,23 @@ const RewardsCatalog = () => {
             </div>
           </div>
         </div>
+
+        {/* Cart Trigger */}
+        <button 
+          onClick={() => navigate('/cart')}
+          className="bg-brand-dark text-white p-6 rounded-3xl flex items-center gap-4 shadow-xl hover:scale-105 transition-all relative"
+        >
+          <ShoppingCart size={24} />
+          <div className="text-left">
+            <div className="text-[10px] font-black uppercase tracking-widest opacity-50">Mi Pedido</div>
+            <div className="text-xl font-black">{cartItemCount} items</div>
+          </div>
+          {cartItemCount > 0 && (
+            <div className="absolute -top-2 -right-2 w-6 h-6 bg-brand-orange text-white rounded-full flex items-center justify-center text-[10px] font-black border-2 border-white">
+              {cartItemCount}
+            </div>
+          )}
+        </button>
       </div>
 
       {/* Cómo funciona */}
@@ -253,18 +220,18 @@ const RewardsCatalog = () => {
 
                   <button
                     disabled={disabled}
-                    onClick={() => handleRedeem(reward)}
+                    onClick={() => handleAddToCartReward(reward)}
                     className={`px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest
                       transition-all min-w-[130px] flex items-center justify-center gap-2
-                      ${canAfford && !outOfStock && !claimingId
+                      ${canAfford && !outOfStock && !addingToCart
                         ? 'bg-brand-orange text-white shadow-lg shadow-brand-orange/30 hover:bg-brand-700 active:scale-95'
                         : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                       }`}
                   >
-                    {isClaiming ? (
+                    {addingToCart ? (
                       <>
                         <Loader2 size={13} className="animate-spin" />
-                        Procesando...
+                        Agregando...
                       </>
                     ) : outOfStock ? (
                       'Agotado'
@@ -272,8 +239,8 @@ const RewardsCatalog = () => {
                       `Faltan ${reward.pointsCost - points} pts`
                     ) : (
                       <>
-                        <ChefHat size={13} />
-                        Canjear Ahora
+                        <Plus size={13} />
+                        Agregar al Carrito
                       </>
                     )}
                   </button>
