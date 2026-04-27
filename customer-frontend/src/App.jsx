@@ -12,6 +12,8 @@ import OrderHistory from './pages/OrderHistory';
 import RewardsCatalog from './pages/RewardsCatalog';
 import Register from './pages/Register';
 import Profile from './pages/Profile';
+import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -42,6 +44,8 @@ function App() {
           <Route path="history" element={<ProtectedRoute><OrderHistory /></ProtectedRoute>} />
           <Route path="rewards" element={<ProtectedRoute><RewardsCatalog /></ProtectedRoute>} />
           <Route path="profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
+          <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" />} />

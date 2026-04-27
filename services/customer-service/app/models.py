@@ -28,6 +28,9 @@ class User(Base):
     preferences: Mapped[str | None] = mapped_column(Text, nullable=True)
     country: Mapped[str] = mapped_column(String(50), default="Colombia")
     city: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     branch: Mapped[str | None] = mapped_column(String(50), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 

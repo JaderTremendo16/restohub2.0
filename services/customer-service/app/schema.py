@@ -28,6 +28,9 @@ class UserType:
     preferences: Optional[str]
     country: str
     city: Optional[str]
+    address: Optional[str]
+    latitude: Optional[float]
+    longitude: Optional[float]
     branch: Optional[str]
     created_at: str
 
@@ -69,6 +72,28 @@ class CustomerAuthPayload:
     message: str
 
 
+@strawberry.type
+class CartAddressType:
+    raw: str
+    formatted: str
+    lat: Optional[float]
+    lng: Optional[float]
+
+@strawberry.type
+class CartItemType:
+    product_id: str
+    name: str
+    price: float
+    quantity: int
+    is_reward: bool
+
+@strawberry.type
+class CartType:
+    customer_id: str
+    items: List[CartItemType]
+    delivery_address: CartAddressType
+
+
 # ─── Helpers ───────────────────────────────────────────────────────────────
 
 def _map_user(u: User) -> UserType:
@@ -82,6 +107,9 @@ def _map_user(u: User) -> UserType:
         preferences=u.preferences,
         country=u.country,
         city=u.city,
+        address=u.address,
+        latitude=u.latitude,
+        longitude=u.longitude,
         branch=u.branch,
         created_at=u.created_at.isoformat(),
     )
@@ -107,6 +135,26 @@ def _map_order(o: Order) -> OrderType:
         total_price=o.total_price,
         branch=o.branch,
         created_at=o.created_at.isoformat(),
+    )
+
+def _map_cart(c: dict) -> CartType:
+    return CartType(
+        customer_id=c["customer_id"],
+        items=[
+            CartItemType(
+                product_id=i["product_id"],
+                name=i["name"],
+                price=i["price"],
+                quantity=i["quantity"],
+                is_reward=i.get("is_reward", False)
+            ) for i in c["items"]
+        ],
+        delivery_address=CartAddressType(
+            raw=c["delivery_address"].get("raw", ""),
+            formatted=c["delivery_address"].get("formatted", ""),
+            lat=c["delivery_address"].get("lat"),
+            lng=c["delivery_address"].get("lng")
+        )
     )
 
 
@@ -179,6 +227,12 @@ class Query:
         db.close()
         return result
 
+    @strawberry.field
+    def cart(self, customer_id: str) -> CartType:
+        """Retorna el carrito actual desde Redis."""
+        from app.redis_client import CartManager
+        return _map_cart(CartManager.get_cart(customer_id))
+
 
 # ─── Mutations ─────────────────────────────────────────────────────────────
 
@@ -195,10 +249,20 @@ class Mutation:
         preferences: Optional[str] = None,
         country: Optional[str] = None,
         city: Optional[str] = None,
+        address: Optional[str] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
         branch: Optional[str] = None,
     ) -> UserType:
         """Registra un nuevo cliente en el sistema."""
         db = SessionLocal()
+        
+        # Verificar si el usuario ya existe
+        existing_user = db.query(User).filter(User.email == email).first()
+        if existing_user:
+            db.close()
+            raise ValueError(f"El email {email} ya se encuentra registrado.")
+
         user = User(
             id=str(uuid.uuid4()),
             auth0_id=f"local|{email}",
@@ -210,6 +274,9 @@ class Mutation:
             preferences=preferences,
             country=country or "Colombia",
             city=city,
+            address=address,
+            latitude=latitude,
+            longitude=longitude,
             branch=branch,
         )
         db.add(user)
@@ -311,6 +378,9 @@ class Mutation:
         phone: Optional[str] = None,
         country: Optional[str] = None,
         city: Optional[str] = None,
+        address: Optional[str] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
         branch: Optional[str] = None,
     ) -> UserType:
         """Actualiza los datos del perfil del cliente."""
@@ -324,6 +394,9 @@ class Mutation:
         user.phone = phone
         if country: user.country = country
         if city: user.city = city
+        if address: user.address = address
+        if latitude is not None: user.latitude = latitude
+        if longitude is not None: user.longitude = longitude
         if branch: user.branch = branch
         db.commit()
         db.refresh(user)
@@ -356,12 +429,51 @@ class Mutation:
             db.add(new_order)
             db.commit()
             
+            # Al completar, limpiamos el carrito de Redis
+            from app.redis_client import CartManager
+            CartManager.clear_cart(customer_id)
+            
             return "Orden sincronizada en tu historial."
         except Exception as e:
             db.rollback()
             raise ValueError(f"Error al completar orden: {str(e)}")
         finally:
             db.close()
+
+    @strawberry.mutation
+    def add_to_cart(
+        self,
+        customer_id: str,
+        product_id: str,
+        name: str,
+        price: float,
+        quantity: int = 1,
+        is_reward: bool = False
+    ) -> CartType:
+        from app.redis_client import CartManager
+        item = {
+            "product_id": product_id,
+            "name": name,
+            "price": price,
+            "quantity": quantity,
+            "is_reward": is_reward
+        }
+        return _map_cart(CartManager.add_item(customer_id, item))
+
+    @strawberry.mutation
+    def remove_from_cart(self, customer_id: str, product_id: str) -> CartType:
+        from app.redis_client import CartManager
+        return _map_cart(CartManager.remove_item(customer_id, product_id))
+
+    @strawberry.mutation
+    def update_cart_quantity(self, customer_id: str, product_id: str, quantity: int) -> CartType:
+        from app.redis_client import CartManager
+        return _map_cart(CartManager.update_quantity(customer_id, product_id, quantity))
+
+    @strawberry.mutation
+    def clear_cart(self, customer_id: str) -> bool:
+        from app.redis_client import CartManager
+        return CartManager.clear_cart(customer_id)
 
 
 # ─── Schema ────────────────────────────────────────────────────────────────

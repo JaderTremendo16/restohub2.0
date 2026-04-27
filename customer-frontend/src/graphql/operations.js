@@ -13,6 +13,9 @@ export const LOGIN_MUTATION = gql`
         preferences
         country
         city
+        address
+        latitude
+        longitude
         branch
       }
     }
@@ -27,6 +30,9 @@ export const REGISTER_MUTATION = gql`
     $phone: String
     $country: String
     $city: String
+    $address: String
+    $latitude: Float
+    $longitude: Float
     $branch: String
   ) {
     createUser(
@@ -36,6 +42,9 @@ export const REGISTER_MUTATION = gql`
       phone: $phone
       country: $country
       city: $city
+      address: $address
+      latitude: $latitude
+      longitude: $longitude
       branch: $branch
     ) {
       id
@@ -51,6 +60,9 @@ export const UPDATE_PROFILE_MUTATION = gql`
     $phone: String
     $country: String
     $city: String
+    $address: String
+    $latitude: Float
+    $longitude: Float
     $branch: String
   ) {
     updateUserProfile(
@@ -60,6 +72,9 @@ export const UPDATE_PROFILE_MUTATION = gql`
       phone: $phone
       country: $country
       city: $city
+      address: $address
+      latitude: $latitude
+      longitude: $longitude
       branch: $branch
     ) {
       id
@@ -68,6 +83,9 @@ export const UPDATE_PROFILE_MUTATION = gql`
       phone
       country
       city
+      address
+      latitude
+      longitude
       branch
     }
   }
@@ -308,6 +326,8 @@ export const GET_LOCATIONS = gql`
       id
       name
       address
+      latitude
+      longitude
       countryId
     }
   }
@@ -410,5 +430,78 @@ export const REDEEM_POINTS_MUTATION = gql`
       message
       remainingPoints
     }
+  }
+`;
+
+export const GET_CART = gql`
+  query GetCart($customerId: String!) {
+    cart(customerId: $customerId) {
+      customerId
+      items {
+        productId
+        name
+        price
+        quantity
+        isReward
+      }
+      deliveryAddress {
+        raw
+        formatted
+        lat
+        lng
+      }
+    }
+  }
+`;
+
+export const ADD_TO_CART = gql`
+  mutation AddToCart(
+    $cid: String!
+    $pid: String!
+    $name: String!
+    $price: Float!
+    $qty: Int!
+    $reward: Boolean
+  ) {
+    addToCart(
+      customerId: $cid
+      productId: $pid
+      name: $name
+      price: $price
+      quantity: $qty
+      isReward: $reward
+    ) {
+      items {
+        productId
+        quantity
+      }
+    }
+  }
+`;
+
+export const REMOVE_FROM_CART = gql`
+  mutation RemoveFromCart($cid: String!, $pid: String!) {
+    removeFromCart(customerId: $cid, productId: $pid) {
+      items {
+        productId
+      }
+    }
+  }
+`;
+
+export const UPDATE_CART_QTY = gql`
+  mutation UpdateCartQty($cid: String!, $pid: String!, $qty: Int!) {
+    updateCartQuantity(customerId: $cid, productId: $pid, quantity: $qty) {
+      items {
+        productId
+        quantity
+      }
+    }
+  }
+`;
+
+export const CLEAR_CART = gql`
+  mutation ClearCart($cid: String!) {
+    clearCart(customerId: $cid)
   }
 `;

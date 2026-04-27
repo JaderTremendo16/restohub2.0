@@ -24,6 +24,8 @@ export const GET_LOCATIONS = gql`
       id
       name
       address
+      latitude
+      longitude
       timezone
       countryId
     }
@@ -37,6 +39,8 @@ export const GET_LOCATIONS_BY_COUNTRY = gql`
       id
       name
       address
+      latitude
+      longitude
       countryId
     }
   }
@@ -143,11 +147,13 @@ export const CREATE_COUNTRY = gql`
 `;
 
 export const CREATE_LOCATION = gql`
-  mutation CreateLocation($name: String!, $address: String!, $countryId: ID!, $timezone: String) {
-    createLocation(name: $name, address: $address, countryId: $countryId, timezone: $timezone) {
+  mutation CreateLocation($name: String!, $address: String!, $latitude: Float, $longitude: Float, $countryId: ID!, $timezone: String) {
+    createLocation(name: $name, address: $address, latitude: $latitude, longitude: $longitude, countryId: $countryId, timezone: $timezone) {
       id
       name
       address
+      latitude
+      longitude
       timezone
       countryId
     }

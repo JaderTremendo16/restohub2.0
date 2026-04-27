@@ -1,0 +1,34 @@
+# Resumen de Modernización: RestoHub 2.0
+
+Este documento detalla todos los cambios realizados para implementar el sistema de **Carrito de Compras con Redis** e **Integración de Mapas Inteligentes**.
+
+## 1. Cambios en Infraestructura (Docker)
+- **Redis**: Se integró un contenedor de Redis (`redis:alpine`) para manejar carritos de compra persistentes sin depender de bases de datos relacionales o localStorage.
+- **Configuración**: Se añadió la variable `REDIS_URL` al microservicio `customer-service`.
+
+## 2. Cambios en Backend (customer-service)
+- **Modelo de Usuario**: Se añadieron los campos `address`, `latitude` y `longitude` a la base de datos de usuarios.
+- **Migraciones**: Se generó la migración `e0066a8ced68_add_location_fields.py`. El sistema está configurado para aplicar migraciones automáticamente al iniciar.
+- **Lógica de Carrito**: Se creó `app/redis_client.py` que gestiona el ciclo de vida del carrito (añadir, eliminar, actualizar unidades) con un TTL de 1 hora.
+- **GraphQL**: Se añadieron las mutaciones `add_to_cart`, `remove_from_cart`, `update_cart_quantity` y `clear_cart`.
+- **Validación**: La mutación `create_user` ahora verifica correos duplicados antes de insertar.
+
+## 3. Cambios en Frontend (customer-frontend)
+- **Mapas Inteligentes**:
+    - Integración de **Leaflet.js** y **OpenStreetMap**.
+    - **Geocodificación Inversa**: Al hacer clic en el mapa, se obtiene automáticamente la dirección legible vía la API de Nominatim.
+    - **Localización por Sede**: El mapa se centra según el país seleccionado (Colombia, Portugal, España, México).
+- **Flujo de Compra**:
+    - **Menú Digital**: Se reemplazó el botón "Pedir" por "Añadir al Carrito" con notificaciones visuales (Toasts).
+    - **Badge Dinámico**: Indicador numérico de ítems en el Sidebar.
+    - **Checkout**: Implementación de una vista de pago con calculadora de vuelto para efectivo y soporte visual para cambio de dirección en tiempo real.
+
+## 4. Instrucciones de Portabilidad
+Si pasas este proyecto a otra persona, solo debe:
+1. Clonar el repositorio.
+2. Asegurarse de tener Docker y Docker Compose instalados.
+3. Ejecutar: `docker-compose up --build`
+4. El sistema aplicará automáticamente las migraciones (`alembic upgrade head`) y levantará Redis sin necesidad de configuraciones manuales.
+
+---
+

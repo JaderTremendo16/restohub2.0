@@ -1,0 +1,122 @@
+# Plan de Implementación: Mapas y Carrito de Compras con Redis
+
+Este plan detalla la integración de OpenStreetMap/Leaflet para la ubicación de clientes y la creación de un sistema de carrito de compras persistente utilizando Redis en lugar de LocalStorage.
+
+## User Review Required
+
+> [!IMPORTANT]
+> Se añadirá **Redis** a la infraestructura de Docker para gestionar el carrito persistente.
+> La lógica del carrito se implementará directamente en el **customer-service** (Python/Strawberry), evitando la creación de un nuevo microservicio.
+
+> [!WARNING]
+> El flujo actual de "Pedido Unitario" en el frontend será reemplazado por un flujo de "Carrito -> Checkout -> Confirmación", consolidando múltiples productos en una sola orden.
+
+## Open Questions
+*(No quedan preguntas pendientes tras el feedback del usuario)*
+
+## Proposed Changes
+
+---
+
+### Infraestructura
+
+#### [MODIFY] [docker-compose.yml](file:///c:/Users/julia/Desktop/restohub2.0/docker-compose.yml)
+- Agregar servicio de `redis`.
+- Agregar el nuevo `cart-service` (si se aprueba).
+- Definir volúmenes para la persistencia de datos de Redis.
+
+---
+
+### Backend: Customer Service (Carrito y Ubicación)
+
+#### [MODIFY] [models.py](file:///c:/Users/julia/Desktop/restohub2.0/services/customer-service/app/models.py)
+- Agregar campos `latitude` (Float), `longitude` (Float) y `address` (String) al modelo `User`.
+
+#### [MODIFY] [schema.py](file:///c:/Users/julia/Desktop/restohub2.0/services/customer-service/app/schema.py)
+- Exponer los campos de ubicación en GraphQL.
+- Implementar tipos Strawberry para el Carrito (`CartType`, `CartItemType`, `AddressType`).
+- Implementar mutaciones de Carrito conectadas a Redis:
+  - `addToCart`: Agrega o incrementa unidades.
+  - `removeFromCart`: Elimina un producto.
+  - `updateCartQuantity`: Modifica cantidad directamente.
+  - `clearCart`: Vacía el carrito del usuario.
+- Implementar query `cart`: Obtiene el estado actual desde Redis.
+
+#### [MODIFY] [requirements.txt](file:///c:/Users/julia/Desktop/restohub2.0/services/customer-service/requirements.txt)
+- Agregar la librería `redis` para la conexión desde Python.
+
+#### [NEW] `services/customer-service/app/redis_client.py`
+- Lógica de conexión a Redis y métodos helper para persistir el JSON según el formato solicitado:
+  ```json
+  {
+    "customer_id": "...",
+    "items": [...],
+    "delivery_address": { "raw": "...", "lat": ..., "lng": ... }
+  }
+  ```
+- TTL de 1 hora (3600s).
+
+---
+
+### Frontend: Mapas (Leaflet)
+
+#### [MODIFY] [Register.jsx](file:///c:/Users/julia/Desktop/restohub2.0/customer-frontend/src/pages/Register.jsx)
+- Instalar `leaflet` y `react-leaflet`.
+- Añadir un mapa interactivo para seleccionar la ubicación exacta.
+- Capturar coordenadas y dirección al momento del registro.
+
+#### [MODIFY] [Profile.jsx](file:///c:/Users/julia/Desktop/restohub2.0/customer-frontend/src/pages/Profile.jsx)
+- Permitir modificar la ubicación guardada mediante el mapa.
+
+---
+
+### Frontend: Carrito de Compras
+
+#### [MODIFY] [DigitalMenu.jsx](file:///c:/Users/julia/Desktop/restohub2.0/customer-frontend/src/pages/DigitalMenu.jsx)
+- Cambiar botón "Ordenar" por "Agregar al carrito".
+- Implementar mutación `ADD_TO_CART`.
+- Mostrar notificación Toast al agregar un producto.
+- Añadir icono de carrito con badge de cantidad al lado de la búsqueda.
+
+#### [MODIFY] [RewardsCatalog.jsx](file:///c:/Users/julia/Desktop/restohub2.0/customer-frontend/src/pages/RewardsCatalog.jsx)
+- Cambiar "Canjear Ahora" por "Agregar al carrito".
+- Al agregar, marcar el ítem con `price: 0` e `is_reward: true`.
+- Validar puntos suficientes antes de permitir agregar al carrito.
+
+#### [NEW] `CartView.jsx`
+- Vista detallada del carrito:
+  - Listado de productos con fotos/emojis.
+  - Botones para +/- cantidades o eliminar.
+  - Botón "Vaciar Carrito".
+  - Resumen de totales.
+  - Botón "Confirmar Compra" -> Redirige a Checkout.
+
+#### [NEW] `Checkout.jsx`
+- Basado en la captura de pantalla:
+  - Resumen final de la orden.
+  - Selección de método de pago (Efectivo/PayPal).
+  - Lógica de efectivo: Input de monto pagado y cálculo de vuelto.
+  - Botón final "Finalizar Pedido":
+    - Crea la orden en `orders-service` (dejando la base para la integración final).
+    - Registra en historial de `customer-service` (vía `complete_order`).
+    - Limpia el carrito en Redis.
+
+---
+
+### API Gateway
+
+#### [MODIFY] [index.js](file:///c:/Users/julia/Desktop/restohub2.0/gateway/src/index.js)
+- Registrar el nuevo `cart-service` en la lista de subgrafos.
+
+## Verification Plan
+
+### Automated Tests
+- Pruebas de integración para el `cart-service` con Redis.
+- Validar que al crear una orden desde el carrito, los puntos de lealtad se descuenten correctamente.
+
+### Manual Verification
+1. Registrar un usuario nuevo usando el mapa de Leaflet.
+2. Agregar varios platos normales y un premio al carrito.
+3. Verificar que el badge del carrito se actualice en tiempo real.
+4. Ir al carrito, modificar cantidades y confirmar que se refleje en Redis (recargando la página).
+5. Completar el checkout y verificar que se haya creado una única orden con múltiples ítems en el historial.

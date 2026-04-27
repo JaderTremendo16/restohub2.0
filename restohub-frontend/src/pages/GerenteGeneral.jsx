@@ -11,6 +11,7 @@ import {
   SEARCH_EXTERNAL_COUNTRY,
 } from "../graphql/location";
 import { Globe, Store, MapPin, User, Building2 } from "lucide-react";
+import MapPicker from "../components/common/MapPicker";
 
 // Lista rápida de países con sus monedas y zonas horarias automáticas
 // Removido WORLD_COUNTRIES hardcoded para usar la API en tiempo real.
@@ -367,12 +368,24 @@ function SeccionPaises({ countries, loadingCountries, refetchCountries }) {
   );
 }
 
+const getCountryCenter = (countryName) => {
+  const centers = {
+    Colombia: [4.6097, -74.0817],
+    Portugal: [38.7223, -9.1393],
+    España: [40.4168, -3.7038],
+    México: [19.4326, -99.1332],
+  };
+  return centers[countryName] || [4.6097, -74.0817];
+};
+
 // ── Sección Sedes ───────────────────────────────────────────────
 function SeccionSedes({ countries, locations, loadingLocations }) {
   const [form, setForm] = useState({
     name: "",
     address: "",
     countryId: "",
+    latitude: null,
+    longitude: null,
   });
   const [expandido, setExpandido] = useState(false);
   const [filtroPais, setFiltroPais] = useState("");
@@ -380,15 +393,15 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
   const [createLocation, { loading }] = useMutation(CREATE_LOCATION, {
     refetchQueries: [{ query: GET_LOCATIONS }],
     onCompleted: () => {
-      setForm({ name: "", address: "", countryId: "" });
+      setForm({ name: "", address: "", countryId: "", latitude: null, longitude: null });
       setExpandido(false);
     },
     onError: (e) => alert("Error al crear sede: " + e.message),
   });
 
   const handleSubmit = () => {
-    if (!form.name || !form.address || !form.countryId) {
-      alert("Todos los campos son obligatorios");
+    if (!form.name || !form.address || !form.countryId || form.latitude === null) {
+      alert("Todos los campos son obligatorios, incluyendo la ubicación en el mapa");
       return;
     }
     createLocation({ variables: { ...form, countryId: form.countryId } });
@@ -491,6 +504,31 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
                 ))}
               </select>
             </div>
+            {/* Componente MapPicker integrado para Sedes */}
+            {form.countryId && (
+              <div style={{ width: "100%", marginTop: "1rem" }}>
+                <label style={labelStyle}>Ubicación Exacta de la Sede *</label>
+                <div style={{ height: "300px", borderRadius: "0.5rem", overflow: "hidden", border: "1px solid #e5e7eb" }}>
+                  <MapPicker
+                    lat={form.latitude}
+                    lng={form.longitude}
+                    address={form.address}
+                    onChange={(lat, lng, addr) => {
+                      setForm(prev => ({
+                        ...prev,
+                        address: addr || prev.address,
+                        latitude: lat,
+                        longitude: lng
+                      }));
+                    }}
+                    suggestedCenter={getCountryCenter(countries?.find(c => String(c.id) === String(form.countryId))?.name)}
+                  />
+                </div>
+                <p style={{ fontSize: "0.75rem", color: "#6b7280", marginTop: "0.5rem" }}>
+                  Haz clic en el mapa para marcar la posición exacta de esta sede. Esta coordenada se usará para validar si los pedidos están dentro de cobertura.
+                </p>
+              </div>
+            )}
           </div>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <button

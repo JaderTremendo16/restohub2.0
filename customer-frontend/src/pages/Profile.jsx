@@ -6,16 +6,20 @@ import {
   GET_COUNTRIES,
   GET_LOCATIONS
 } from '../graphql/operations';
-import { User, Mail, Phone, MapPin, Building2, Save, Loader2, CheckCircle2, Globe } from 'lucide-react';
+import MapPicker from '../components/common/MapPicker';
+import { User, Mail, Phone, MapPin, Building2, Save, Loader2, CheckCircle2, Globe, LogOut } from 'lucide-react';
 
 const Profile = () => {
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     email: user?.email || '',
     phone: user?.phone || '',
     country: user?.country || '',
-    branch: user?.branch || ''
+    branch: user?.branch || '',
+    address: user?.address || '',
+    latitude: user?.latitude || null,
+    longitude: user?.longitude || null
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -37,6 +41,25 @@ const Profile = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleLocationChange = (lat, lng, address) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      latitude: lat, 
+      longitude: lng,
+      address: address || prev.address
+    }));
+  };
+
+  const getCountryCenter = (country) => {
+    const centers = {
+      'Colombia': [4.6097, -74.0817],
+      'Portugal': [38.7223, -9.1393],
+      'España': [40.4168, -3.7038],
+      'México': [19.4326, -99.1332]
+    };
+    return centers[country] || [4.6097, -74.0817];
   };
 
   const handleSubmit = (e) => {
@@ -169,6 +192,30 @@ const Profile = () => {
                   </select>
                 </div>
               </div>
+
+              <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-50">
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-slate-700 px-1">Dirección de Entrega</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+                    <input
+                      name="address"
+                      value={formData.address}
+                      onChange={handleChange}
+                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-slate-800"
+                      placeholder="Calle, Número, Ciudad"
+                    />
+                  </div>
+                </div>
+                
+                <MapPicker 
+                  lat={formData.latitude} 
+                  lng={formData.longitude} 
+                  onChange={handleLocationChange}
+                  suggestedCenter={getCountryCenter(formData.country)}
+                  branchLocation={locations.find(l => l.name === formData.branch)}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -186,11 +233,19 @@ const Profile = () => {
             <button
               type="submit"
               disabled={updating}
-              className="w-full py-4 bg-brand-orange hover:bg-brand-700 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-brand-orange/20"
+              className="w-full py-4 bg-brand-orange hover:bg-orange-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 shadow-xl shadow-brand-orange/20"
             >
               {updating ? <Loader2 className="animate-spin" size={20} /> : (
                 <><Save size={18} /> Guardar Cambios</>
               )}
+            </button>
+
+            <button
+              type="button"
+              onClick={logout}
+              className="w-full py-4 bg-white/5 hover:bg-rose-500/10 text-rose-400 hover:text-rose-500 rounded-2xl font-black text-xs uppercase tracking-widest transition-all flex items-center justify-center gap-2 border border-white/5"
+            >
+              <LogOut size={18} /> Cerrar Sesión
             </button>
           </div>
         </div>

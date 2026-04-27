@@ -19,6 +19,8 @@ module.exports = gql`
     id: ID!
     name: String!
     address: String!
+    latitude: Float
+    longitude: Float
     timezone: String
     countryId: ID!
     admin: User
@@ -91,6 +93,8 @@ module.exports = gql`
     createLocation(
       name: String!
       address: String!
+      latitude: Float
+      longitude: Float
       countryId: ID!
       timezone: String
     ): Location!
