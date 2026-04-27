@@ -7,8 +7,6 @@ import {
   CREATE_REAL_ORDER,
   ADD_ORDER_ITEMS,
   GET_LOCATIONS,
-  GET_CART,
-  ADD_TO_CART
 } from '../graphql/operations';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +14,7 @@ import {
   Gift, Wallet, CheckCircle2, XCircle, Info,
   Sparkles, ChefHat, Loader2, Tag, ShoppingCart, Plus
 } from 'lucide-react';
+import { GET_CART, ADD_TO_CART } from '../graphql/operations';
 
 const RewardsCatalog = () => {
   const { user } = useAuth();
@@ -31,7 +30,7 @@ const RewardsCatalog = () => {
   });
 
   const { data: loyaltyData, refetch: refetchLoyalty } = useQuery(GET_LOYALTY_ACCOUNT, {
-    variables: { customerId: user?.id },
+    variables: { customerId: user.id },
     skip: !user,
     notifyOnNetworkStatusChange: true,
   });
@@ -43,16 +42,8 @@ const RewardsCatalog = () => {
   const [createRealOrder] = useMutation(CREATE_REAL_ORDER);
   const [addOrderItems]   = useMutation(ADD_ORDER_ITEMS);
 
-  const rewards = rewardsData?.rewards || [];
-  const points  = loyaltyData?.loyaltyAccount?.totalPoints || 0;
-
-  const showMsg = (type, text) => {
-    setMsg({ type, text });
-    setTimeout(() => setMsg({ type: '', text: '' }), 6000);
-  };
-
   const { data: cartData } = useQuery(GET_CART, {
-    variables: { customerId: user?.id },
+    variables: { customerId: user.id },
     skip: !user,
   });
 
@@ -65,6 +56,14 @@ const RewardsCatalog = () => {
 
   const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
+  const rewards = rewardsData?.rewards || [];
+  const points  = loyaltyData?.loyaltyAccount?.totalPoints || 0;
+
+  const showMsg = (type, text) => {
+    setMsg({ type, text });
+    setTimeout(() => setMsg({ type: '', text: '' }), 6000);
+  };
+
   const handleAddToCartReward = async (reward) => {
     if (points < reward.pointsCost) {
       showMsg('error', `Necesitas ${reward.pointsCost} puntos. Solo tienes ${points}.`);
@@ -74,7 +73,7 @@ const RewardsCatalog = () => {
     try {
       await addToCart({
         variables: {
-          cid: user?.id,
+          cid: user.id,
           pid: `reward-${reward.id}`,
           name: `🎁 ${reward.name} (Canje)`,
           price: 0,

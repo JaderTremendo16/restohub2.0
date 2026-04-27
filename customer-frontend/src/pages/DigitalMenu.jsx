@@ -5,8 +5,6 @@ import {
   COMPLETE_ORDER_MUTATION,
   CREATE_REAL_ORDER,
   ADD_ORDER_ITEMS,
-  GET_CART,
-  ADD_TO_CART
 } from "../graphql/operations";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -18,7 +16,11 @@ import {
   Star,
   Info,
   CheckCircle2,
+  ShoppingCart,
+  Plus,
+  Loader2
 } from "lucide-react";
+import { GET_CART, ADD_TO_CART } from "../graphql/operations";
 import RatingModal from "../components/common/RatingModal";
 import { GET_LOCATIONS } from "../graphql/operations";
 
@@ -39,20 +41,10 @@ const DigitalMenu = () => {
 
   const navigate = useNavigate();
 
-  const { data: cartData } = useQuery(GET_CART, {
-    variables: { customerId: user?.id },
-    skip: !user,
+  const [completeOrder] = useMutation(COMPLETE_ORDER_MUTATION, {
+    refetchQueries: ["GetOrders"],
+    awaitRefetchQueries: true,
   });
-
-  const [addToCart, { loading: addingToCart }] = useMutation(ADD_TO_CART, {
-    refetchQueries: ["GetCart"],
-    onCompleted: () => {
-      setOrderStatus({ show: true, text: "Producto agregado al carrito." });
-      setTimeout(() => setOrderStatus({ show: false, text: "" }), 3000);
-    },
-  });
-
-  const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
   const [createRealOrder] = useMutation(CREATE_REAL_ORDER);
   const [addOrderItems, { loading: ordering }] = useMutation(ADD_ORDER_ITEMS, {
@@ -60,14 +52,56 @@ const DigitalMenu = () => {
     awaitRefetchQueries: true,
   });
 
+  const { data: cartData } = useQuery(GET_CART, {
+    variables: { customerId: user.id },
+    skip: !user,
+  });
+
+  const [addToCart, { loading: addingToCart }] = useMutation(ADD_TO_CART, {
+    refetchQueries: ["GetCart"],
+    onCompleted: () => {
+      setOrderStatus({ show: true, text: "¡Producto agregado al carrito!" });
+      setTimeout(() => setOrderStatus({ show: false, text: "" }), 3000);
+    },
+  });
+
+  const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
+
+  const { data: locData } = useQuery(GET_LOCATIONS);
+  const locations = locData?.locations || [];
+
+  // Encontrar el ID numérico de la sede actual del usuario basado en su nombre
+  const currentLocation = locations.find(loc => 
+    loc.name?.trim().toLowerCase() === user?.branch?.trim().toLowerCase()
+  );
+  const currentLocationId = currentLocation ? parseInt(currentLocation.id) : null;
+
   // Normalizar platos del menu-service real al formato que usa el componente
   const rawDishes = data?.dishes || [];
-  const dishes = rawDishes.map((d) => ({
-    ...d,
-    price: d.prices?.[0]?.price ?? 0,
-    emoji: "🍽️", // El menu-service no tiene emoji, usamos uno genérico
-    isActive: d.is_active,
-  }));
+  const dishes = rawDishes.map((d) => {
+    // Buscar el precio específico de la sede del usuario, si no, el primero.
+    let priceObj = null;
+    if (currentLocationId) {
+      priceObj = d.prices?.find(p => parseInt(p.restaurant_id) === currentLocationId);
+    }
+    if (!priceObj) {
+      priceObj = d.prices?.[0];
+    }
+    
+    let price = priceObj?.price ?? 0;
+    
+    // CORRECCIÓN CRÍTICA: Si el precio viene multiplicado por 1000 (ej: 650000), lo normalizamos.
+    if (price > 10000) {
+      price = price / 1000;
+    }
+
+    return {
+      ...d,
+      price: price,
+      emoji: "🍽️",
+      isActive: d.is_active,
+    };
+  });
 
   const categories = [
     "Todos",
@@ -83,14 +117,13 @@ const DigitalMenu = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const { data: locData } = useQuery(GET_LOCATIONS);
-  const locations = locData?.locations || [];
+
 
   const handleAddToCart = async (dish) => {
     try {
       await addToCart({
         variables: {
-          cid: user?.id,
+          cid: user.id,
           pid: String(dish.id),
           name: dish.name,
           price: parseFloat(dish.price),
@@ -134,6 +167,7 @@ const DigitalMenu = () => {
               className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-2xl text-sm font-medium outline-none focus:ring-2 ring-brand-500/20 transition-all border border-transparent focus:border-brand-500"
             />
           </div>
+          
           <div className="bg-brand-dark px-4 rounded-2xl flex items-center gap-2 text-white shadow-lg shadow-brand-dark/10">
             <Filter size={16} className="text-slate-500" />
             <select
@@ -148,19 +182,6 @@ const DigitalMenu = () => {
               ))}
             </select>
           </div>
-
-          <button 
-            onClick={() => navigate('/cart')}
-            className="bg-brand-orange text-white px-6 rounded-2xl flex items-center gap-3 shadow-lg shadow-brand-orange/30 hover:scale-105 transition-all relative"
-          >
-            <ShoppingBag size={20} />
-            <span className="font-black text-xs uppercase tracking-widest">{cartItemCount} items</span>
-            {cartItemCount > 0 && (
-              <div className="absolute -top-2 -right-2 w-6 h-6 bg-white text-brand-orange rounded-full flex items-center justify-center text-[10px] font-black border-2 border-brand-orange">
-                {cartItemCount}
-              </div>
-            )}
-          </button>
         </div>
       </div>
 
@@ -198,7 +219,7 @@ const DigitalMenu = () => {
                 </div>
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-slate-100/50">
                   <span className="text-xl font-black text-slate-900 leading-none">
-                    ${dish.price.toLocaleString()}
+                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dish.price)}
                   </span>
                 </div>
               </div>
@@ -230,11 +251,14 @@ const DigitalMenu = () => {
                     disabled={addingToCart}
                     className="flex-1 py-4 bg-brand-orange text-white rounded-2xl font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-brand-700 transition-all shadow-lg shadow-brand-orange/20 active:scale-95 group/btn"
                   >
-                    <ShoppingBag
-                      size={16}
-                      className="group-hover/btn:translate-y-[-1px] transition-transform"
-                    />
-                    {addingToCart ? "Agregando..." : "Agregar al Carrito"}
+                    {addingToCart ? (
+                      <Loader2 className="animate-spin" size={16} />
+                    ) : (
+                      <>
+                        <Plus size={16} className="group-hover/btn:translate-y-[-1px] transition-transform" />
+                        Agregar al Carrito
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={() => setSelectedDishForRating(dish.name)}

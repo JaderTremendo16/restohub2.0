@@ -1,8 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { useQuery } from '@apollo/client/react';
 import { useAuth } from '../context/AuthContext';
-import { GET_CART } from '../graphql/operations';
 import { 
   BarChart2, 
   Users, 
@@ -15,8 +13,10 @@ import {
   History,
   LogOut,
   Settings,
-  ShoppingBag
+  ShoppingCart
 } from 'lucide-react';
+import { useQuery } from '@apollo/client/react';
+import { GET_CART } from '../graphql/operations';
 
 const Sidebar = () => {
   const { user, logout } = useAuth();
@@ -24,24 +24,32 @@ const Sidebar = () => {
 
   const { data: cartData } = useQuery(GET_CART, {
     variables: { customerId: user?.id },
-    skip: !user,
+    skip: !user || isAdmin
   });
+
   const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
 
-  const NavItem = ({ to, icon: Icon, label, end = false }) => (
+  const NavItem = ({ to, icon: Icon, label, end = false, badge = 0 }) => (
     <NavLink
       to={to}
       end={end || to === '/'}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
+        `flex items-center justify-between px-4 py-3 rounded-xl font-bold transition-all ${
           isActive 
             ? 'bg-brand-orange text-white shadow-xl shadow-brand-orange/40' 
             : 'text-slate-400 hover:text-white hover:bg-white/5'
         }`
       }
     >
-      <Icon size={20} />
-      <span>{label}</span>
+      <div className="flex items-center gap-3">
+        <Icon size={20} />
+        <span>{label}</span>
+      </div>
+      {badge > 0 && (
+        <span className="bg-white text-brand-orange text-[10px] font-black w-5 h-5 rounded-lg flex items-center justify-center shadow-inner animate-in zoom-in">
+          {badge}
+        </span>
+      )}
     </NavLink>
   );
 
@@ -64,9 +72,9 @@ const Sidebar = () => {
         
         <NavItem to="/" icon={LayoutDashboard} label="Dashboard" />
         <NavItem to="/menu" icon={UtensilsCrossed} label="Menú Digital" />
+        <NavItem to="/cart" icon={ShoppingCart} label="Mi Carrito" badge={cartItemCount} />
         <NavItem to="/history" icon={History} label="Mis Pedidos" />
         <NavItem to="/rewards" icon={Gift} label="Premios" />
-        <NavItem to="/cart" icon={ShoppingBag} label={`Mi Carrito (${cartItemCount})`} />
       </nav>
 
       <div className="mt-auto space-y-2 pt-6 border-t border-white/5">

@@ -17,9 +17,20 @@ volumes:
   pos_db_data:
   rh2_customer_db_data:
   rh2_loyalty_db_data:
-
+  redis_data:
 
 services:
+  # Redis: Para la gestión del carrito de compras persistente
+  redis:
+    image: redis:alpine
+    container_name: restohub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - restohub-network
+    restart: unless-stopped
   #Servicios: son los contenedores que se van a ejecutar
 
   # RabbitMQ: Broker de mensajes, aquel que recibe almancena y envia mensajes entre los microservicios
@@ -389,6 +400,7 @@ services:
     environment:
       DATABASE_URL: postgresql://customer_user:customer_pass@db_customer:5432/customer_db
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
       SECRET_KEY: "restohub_secret_key_v2_2024"
     volumes:
       - ./services/customer-service:/app

@@ -14,8 +14,6 @@ import {
   ChevronRight,
   Crown,
   Gift,
-  Zap,
-  ArrowUpRight,
 } from "lucide-react";
 
 const CustomerHome = () => {
@@ -87,14 +85,14 @@ const CustomerHome = () => {
   const combinedActivity = [
     // Solo mostramos como "Compra" si el precio es > 0, para no duplicar con el evento de "Canje"
     ...orders
-      .filter(o => o.totalPrice > 0)
+      .filter(o => Number(o.totalPrice) > 0)
       .map((o) => ({
         id: o.id,
         type: "purchase",
         title: "Compra en Sede",
         desc: o.branch,
-        value: `-$${o.totalPrice.toLocaleString()}`,
-        points: `+${Math.floor(o.totalPrice)}`, // 1 USD = 1 Punto
+        value: `-$${Number(o.totalPrice).toLocaleString()}`,
+        points: `+${Math.floor(Number(o.totalPrice))}`, // 1 USD = 1 Punto
         date: o.createdAt,
       })),
     ...history.map((h, i) => ({

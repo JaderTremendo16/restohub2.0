@@ -1,17 +1,5 @@
 import { gql } from "@apollo/client";
 
-export const CREATE_PAYPAL_ORDER = gql`
-  mutation CreatePaypalOrder($total: Float!) {
-    createPaypalOrder(total: $total)
-  }
-`;
-
-export const CAPTURE_PAYPAL_ORDER = gql`
-  mutation CapturePaypalOrder($paypalOrderId: String!, $cid: String!, $rid: String!, $itemsJson: String!, $total: Float!) {
-    capturePaypalOrder(paypalOrderId: $paypalOrderId, customerId: $cid, restaurantId: $rid, itemsJson: $itemsJson, total: $total)
-  }
-`;
-
 export const LOGIN_MUTATION = gql`
   mutation Login($email: String!, $password: String!) {
     loginUser(email: $email, password: $password) {
@@ -25,6 +13,9 @@ export const LOGIN_MUTATION = gql`
         preferences
         country
         city
+        address
+        latitude
+        longitude
         branch
       }
     }
@@ -39,6 +30,9 @@ export const REGISTER_MUTATION = gql`
     $phone: String
     $country: String
     $city: String
+    $address: String
+    $latitude: Float
+    $longitude: Float
     $branch: String
   ) {
     createUser(
@@ -48,6 +42,9 @@ export const REGISTER_MUTATION = gql`
       phone: $phone
       country: $country
       city: $city
+      address: $address
+      latitude: $latitude
+      longitude: $longitude
       branch: $branch
     ) {
       id
@@ -63,6 +60,9 @@ export const UPDATE_PROFILE_MUTATION = gql`
     $phone: String
     $country: String
     $city: String
+    $address: String
+    $latitude: Float
+    $longitude: Float
     $branch: String
   ) {
     updateUserProfile(
@@ -72,6 +72,9 @@ export const UPDATE_PROFILE_MUTATION = gql`
       phone: $phone
       country: $country
       city: $city
+      address: $address
+      latitude: $latitude
+      longitude: $longitude
       branch: $branch
     ) {
       id
@@ -80,6 +83,9 @@ export const UPDATE_PROFILE_MUTATION = gql`
       phone
       country
       city
+      address
+      latitude
+      longitude
       branch
     }
   }
@@ -96,6 +102,7 @@ export const GET_DISHES = gql`
       is_active
       prices {
         price
+        restaurant_id
       }
     }
   }
@@ -150,12 +157,14 @@ export const CREATE_REAL_ORDER = gql`
     $customer_id: String!
     $channel: String!
     $priority: String
+    $notes: String
   ) {
     createOrder(
       restaurant_id: $restaurant_id
       customer_id: $customer_id
       channel: $channel
       priority: $priority
+      notes: $notes
     ) {
       id
       status
@@ -167,6 +176,23 @@ export const ADD_ORDER_ITEMS = gql`
   mutation AddOrderItems($order_id: ID!, $items: [OrderItemInput!]!) {
     addOrderItems(order_id: $order_id, items: $items) {
       id
+    }
+  }
+`;
+
+export const GENERATE_INVOICE_MUTATION = gql`
+  mutation GenerateInvoice($order_id: ID!, $customer_name: String!, $customer_email: String!) {
+    generateInvoice(order_id: $order_id, customer_name: $customer_name, customer_email: $customer_email) {
+      id
+    }
+  }
+`;
+
+export const CREATE_PAYMENT_MUTATION = gql`
+  mutation CreatePayment($order_id: ID!, $method: String!, $amount: Float!) {
+    createPayment(order_id: $order_id, method: $method, amount: $amount) {
+      id
+      status
     }
   }
 `;
@@ -430,23 +456,41 @@ export const GET_CART = gql`
     cart(customerId: $customerId) {
       customerId
       items {
-        productId: productId
+        productId
         name
         price
         quantity
-        isReward: isReward
+        isReward
+      }
+      deliveryAddress {
+        raw
+        formatted
+        lat
+        lng
       }
     }
   }
 `;
 
 export const ADD_TO_CART = gql`
-  mutation AddToCart($cid: String!, $pid: String!, $name: String!, $price: Float!, $qty: Int!, $reward: Boolean) {
-    addItemToCart(customerId: $cid, productId: $pid, name: $name, price: $price, quantity: $qty, isReward: $reward) {
-      customerId
+  mutation AddToCart(
+    $cid: String!
+    $pid: String!
+    $name: String!
+    $price: Float!
+    $qty: Int!
+    $reward: Boolean
+  ) {
+    addToCart(
+      customerId: $cid
+      productId: $pid
+      name: $name
+      price: $price
+      quantity: $qty
+      isReward: $reward
+    ) {
       items {
-        productId: productId
-        name
+        productId
         quantity
       }
     }
@@ -455,11 +499,9 @@ export const ADD_TO_CART = gql`
 
 export const REMOVE_FROM_CART = gql`
   mutation RemoveFromCart($cid: String!, $pid: String!) {
-    removeItemFromCart(customerId: $cid, productId: $pid) {
-      customerId
+    removeFromCart(customerId: $cid, productId: $pid) {
       items {
-        productId: productId
-        name
+        productId
       }
     }
   }
@@ -467,11 +509,9 @@ export const REMOVE_FROM_CART = gql`
 
 export const UPDATE_CART_QTY = gql`
   mutation UpdateCartQty($cid: String!, $pid: String!, $qty: Int!) {
-    updateCartItemQuantity(customerId: $cid, productId: $pid, quantity: $qty) {
-      customerId
+    updateCartQuantity(customerId: $cid, productId: $pid, quantity: $qty) {
       items {
-        productId: productId
-        name
+        productId
         quantity
       }
     }
@@ -481,5 +521,22 @@ export const UPDATE_CART_QTY = gql`
 export const CLEAR_CART = gql`
   mutation ClearCart($cid: String!) {
     clearCart(customerId: $cid)
+  }
+`;
+
+export const GET_INVOICE = gql`
+  query GetInvoice($order_id: ID!) {
+    orderInvoice(order_id: $order_id) {
+      id
+      invoice_number
+      subtotal
+      tax
+      total
+      status
+      customer_name
+      customer_email
+      customer_document
+      payment_method
+    }
   }
 `;

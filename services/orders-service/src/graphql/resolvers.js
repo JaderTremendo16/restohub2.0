@@ -211,24 +211,6 @@ const resolvers = {
         .insert(orderItems)
         .returning("*");
 
-      if (existingItems.length === 0) {
-        await publishMessage("order_created", {
-          order_id: order.id,
-          restaurant_id: order.restaurant_id,
-          customer_id: order.customer_id,
-          channel: order.channel,
-          status: order.status,
-          priority: order.priority,
-          area: order.area,
-          origin: "orders",
-          items: inserted.map((i) => ({
-            product_name: i.product_name,
-            quantity: i.quantity,
-            notes: i.notes || null,
-          })),
-        });
-      }
-
       return inserted;
     },
 
@@ -280,6 +262,26 @@ const resolvers = {
         customer_id: updated[0].customer_id,
       });
 
+      // NOTIFICAR A COCINA SOLO CUANDO SE VALIDA (Confirmar Pedido)
+      if (status === "validated") {
+        const items = await db("order_items").where({ order_id: id });
+        await publishMessage("order_created", {
+          order_id: updated[0].id,
+          restaurant_id: updated[0].restaurant_id,
+          customer_id: updated[0].customer_id,
+          channel: updated[0].channel,
+          status: updated[0].status,
+          priority: updated[0].priority,
+          area: updated[0].area,
+          origin: "orders",
+          items: items.map((i) => ({
+            product_name: i.product_name,
+            quantity: i.quantity,
+            notes: i.notes || null,
+          })),
+        });
+      }
+
       if (status === "delivered" && order.origin !== "pos") {
         const items = await db("order_items").where({ order_id: id });
         await publishMessage("inventory_deduction_requested", {
@@ -314,10 +316,8 @@ const resolvers = {
       const order = await db("orders").where({ id: order_id }).first();
       if (!order) throw new Error("Pedido no encontrado");
 
-      if (!["ready", "delivered"].includes(order.status)) {
-        throw new Error(
-          'Solo se puede facturar un pedido en estado "ready" o "delivered"',
-        );
+      if (order.status !== 'ready' && order.status !== 'delivered' && order.status !== 'pending' && order.status !== 'validated') {
+        throw new Error('El estado del pedido no permite facturación en este momento');
       }
 
       const existing = await db("invoices").where({ order_id }).first();
@@ -328,18 +328,18 @@ const resolvers = {
         throw new Error("No se puede generar factura sin ítems");
       }
 
-      const subtotal = items.reduce(
+      const totalAmount = items.reduce(
         (sum, item) => sum + parseFloat(item.subtotal),
         0,
       );
-      const tax = subtotal * 0.19;
-      const total = subtotal + tax;
+      const tax = 0;
+      const total = totalAmount;
 
       const invoice = await db("invoices")
         .insert({
           order_id,
           invoice_number: `FAC-${Date.now()}`,
-          subtotal: subtotal.toFixed(2),
+          subtotal: totalAmount.toFixed(2),
           tax: tax.toFixed(2),
           total: total.toFixed(2),
           customer_name,
@@ -361,9 +361,9 @@ const resolvers = {
         throw new Error("No se puede registrar pago sin ítems");
       }
 
-      if (order.status !== "ready") {
+      if (order.status !== "ready" && order.status !== "pending") {
         throw new Error(
-          'Solo se puede registrar el pago cuando el pedido esté en estado "ready"',
+          'Solo se puede registrar el pago cuando el pedido esté en estado "ready" o sea un pedido web "pending"',
         );
       }
 
@@ -403,21 +403,23 @@ const resolvers = {
         updated_at: new Date(),
       });
 
-      await db("orders").where({ id: order_id }).update({
-        status: "delivered",
-        delivered_at: new Date(),
-        updated_at: new Date(),
-      });
+      if (order.status === "ready") {
+        await db("orders").where({ id: order_id }).update({
+          status: "delivered",
+          delivered_at: new Date(),
+          updated_at: new Date(),
+        });
 
-      await publishMessage("order_status_updated", {
-        order_id,
-        status: "delivered",
-        restaurant_id: order.restaurant_id,
-        customer_id: order.customer_id,
-      });
+        await publishMessage("order_status_updated", {
+          order_id,
+          status: "delivered",
+          restaurant_id: order.restaurant_id,
+          customer_id: order.customer_id,
+        });
+      }
 
       if (order.customer_id) {
-        const points_to_earn = Math.floor(totalPaid / 1000);
+        const points_to_earn = Math.floor(totalPaid);
         await publishMessage("order.completed", {
           customer_id: order.customer_id,
           points: points_to_earn,

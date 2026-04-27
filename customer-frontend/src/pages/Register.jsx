@@ -3,13 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Phone, Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useMutation } from '@apollo/client/react';
 import { REGISTER_MUTATION } from '../graphql/operations';
+import MapPicker from '../components/common/MapPicker';
 
 export default function Register() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    phone: ''
+    phone: '',
+    address: '',
+    country: 'Colombia',
+    latitude: null,
+    longitude: null
   });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
@@ -27,6 +32,25 @@ export default function Register() {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleLocationChange = (lat, lng, address) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      latitude: lat, 
+      longitude: lng,
+      address: address || prev.address 
+    }));
+  };
+
+  const getCountryCenter = (country) => {
+    const centers = {
+      'Colombia': [4.6097, -74.0817],
+      'Portugal': [38.7223, -9.1393],
+      'España': [40.4168, -3.7038],
+      'México': [19.4326, -99.1332]
+    };
+    return centers[country] || [4.6097, -74.0817];
   };
 
   const handleSubmit = async (e) => {
@@ -130,6 +154,43 @@ export default function Register() {
                   placeholder="300 123 4567"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">País / Sede</label>
+              <select
+                name="country"
+                value={formData.country}
+                onChange={handleChange}
+                className="block w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-brand-dark font-black focus:outline-none focus:ring-4 focus:ring-brand-orange/5 focus:border-brand-orange transition-all text-sm"
+              >
+                <option value="Colombia">Colombia</option>
+                <option value="Portugal">Portugal</option>
+                <option value="España">España</option>
+                <option value="México">México</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2 px-1">Dirección de Entrega</label>
+              <div className="relative mb-4">
+                <input
+                  name="address"
+                  type="text"
+                  required
+                  value={formData.address}
+                  onChange={handleChange}
+                  className="block w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-brand-dark font-black placeholder-slate-400 focus:outline-none focus:ring-4 focus:ring-brand-orange/5 focus:border-brand-orange transition-all text-sm"
+                  placeholder="Calle, Número, Ciudad"
+                />
+              </div>
+              
+              <MapPicker 
+                lat={formData.latitude} 
+                lng={formData.longitude} 
+                onChange={handleLocationChange}
+                suggestedCenter={getCountryCenter(formData.country)}
+              />
             </div>
 
             <div>

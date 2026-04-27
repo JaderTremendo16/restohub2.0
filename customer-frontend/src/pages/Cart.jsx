@@ -23,8 +23,8 @@ const Cart = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const { data, loading } = useQuery(GET_CART, {
-    variables: { customerId: user?.id },
+  const { data, loading, refetch } = useQuery(GET_CART, {
+    variables: { customerId: user.id },
     skip: !user
   });
 
@@ -40,7 +40,8 @@ const Cart = () => {
     refetchQueries: ['GetCart']
   });
 
-  const items = data?.cart?.items || [];
+  const cart = data?.cart;
+  const items = cart?.items || [];
   const total = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
   if (loading) return (
@@ -73,7 +74,7 @@ const Cart = () => {
           <p className="text-slate-500 font-medium mt-1">Revisa tus productos antes de finalizar el pedido.</p>
         </div>
         <button 
-          onClick={() => clearCart({ variables: { cid: user?.id } })}
+          onClick={() => clearCart({ variables: { cid: user.id } })}
           className="flex items-center gap-2 text-rose-500 font-black text-xs uppercase hover:bg-rose-50 px-4 py-2 rounded-xl transition-all"
         >
           <XCircle size={16} /> Vaciar Carrito
@@ -102,14 +103,14 @@ const Cart = () => {
 
               <div className="flex items-center gap-4 bg-slate-50 p-2 rounded-2xl border border-slate-100">
                 <button 
-                  onClick={() => updateQty({ variables: { cid: user?.id, pid: item.productId, qty: item.quantity - 1 } })}
+                  onClick={() => updateQty({ variables: { cid: user.id, pid: item.productId, qty: item.quantity - 1 } })}
                   className="w-8 h-8 flex items-center justify-center bg-white rounded-xl text-slate-400 hover:text-brand-orange hover:shadow-sm transition-all"
                 >
                   <Minus size={14} />
                 </button>
                 <span className="font-black text-slate-800 w-4 text-center">{item.quantity}</span>
                 <button 
-                  onClick={() => updateQty({ variables: { cid: user?.id, pid: item.productId, qty: item.quantity + 1 } })}
+                  onClick={() => updateQty({ variables: { cid: user.id, pid: item.productId, qty: item.quantity + 1 } })}
                   className="w-8 h-8 flex items-center justify-center bg-white rounded-xl text-slate-400 hover:text-brand-orange hover:shadow-sm transition-all"
                 >
                   <Plus size={14} />
@@ -117,7 +118,7 @@ const Cart = () => {
               </div>
 
               <button 
-                onClick={() => removeFromCart({ variables: { cid: user?.id, pid: item.productId } })}
+                onClick={() => removeFromCart({ variables: { cid: user.id, pid: item.productId } })}
                 className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-2xl transition-all"
               >
                 <Trash2 size={20} />
@@ -162,6 +163,10 @@ const Cart = () => {
               Continuar al Pago
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
+
+            <p className="text-[10px] text-slate-500 text-center font-bold uppercase tracking-widest leading-relaxed">
+              * El total final puede variar según la sede seleccionada.
+            </p>
           </div>
         </div>
       </div>

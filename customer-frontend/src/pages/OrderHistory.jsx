@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
-import { GET_LIVE_ORDERS, GET_ORDER_ITEMS_LIVE, GET_LOCATIONS } from '../graphql/operations';
+import { GET_LIVE_ORDERS, GET_ORDER_ITEMS_LIVE, GET_LOCATIONS, GET_INVOICE } from '../graphql/operations';
 import { useAuth } from '../context/AuthContext';
 import {
   History, ChefHat, Package, CheckCircle2, Clock,
   Truck, XCircle, ShoppingBag, ChevronDown, ChevronUp,
-  Utensils, CalendarDays
+  Utensils, CalendarDays, FileText
 } from 'lucide-react';
 
 // ─── Configuración de estados ───────────────────────────────────────────────
@@ -136,8 +136,15 @@ function OrderCard({ order, locations = [] }) {
     fetchPolicy: 'cache-first',
   });
 
+  const { data: invoiceData } = useQuery(GET_INVOICE, {
+    variables: { order_id: order.id },
+    skip: !expanded,
+    fetchPolicy: 'cache-first',
+  });
+
   const items = itemsData?.orderItems || [];
   const total = items.reduce((sum, i) => sum + parseFloat(i.subtotal || 0), 0);
+  const invoice = invoiceData?.orderInvoice;
 
   const isActive = !['delivered', 'cancelled'].includes(order.status);
 
@@ -243,6 +250,30 @@ function OrderCard({ order, locations = [] }) {
                   <span className="font-black text-brand-600 text-base">${total.toLocaleString('es-CO')}</span>
                 </div>
               </>
+            )}
+
+            {/* Factura */}
+            {invoice && (
+              <div className="mt-4 p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2">
+                <h4 className="text-xs font-black text-blue-800 uppercase flex items-center gap-2">
+                  <FileText size={14} /> Factura: {invoice.invoice_number}
+                </h4>
+                <div className="flex justify-between text-xs font-medium text-slate-600">
+                  <span>Subtotal:</span>
+                  <span>${parseFloat(invoice.subtotal).toLocaleString('es-CO')}</span>
+                </div>
+                <div className="flex justify-between text-xs font-medium text-slate-600">
+                  <span>Impuestos:</span>
+                  <span>${parseFloat(invoice.tax).toLocaleString('es-CO')}</span>
+                </div>
+                <div className="flex justify-between text-xs font-black text-slate-800 border-t border-blue-200 pt-1 mt-1">
+                  <span>Total Facturado:</span>
+                  <span className="text-blue-700">${parseFloat(invoice.total).toLocaleString('es-CO')}</span>
+                </div>
+                <div className="mt-2 text-[10px] font-bold text-blue-500 uppercase">
+                  Estado: {invoice.status === "paid" ? "✅ Pagada" : "⏳ Pendiente"} | Medio: {invoice.payment_method || "N/A"}
+                </div>
+              </div>
             )}
           </div>
         )}
