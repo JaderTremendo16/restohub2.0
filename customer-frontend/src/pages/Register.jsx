@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, Phone, Loader2, AlertCircle, ArrowLeft, CheckCircle2 } from 'lucide-react';
-import { useMutation } from '@apollo/client/react';
-import { REGISTER_MUTATION } from '../graphql/operations';
+import { useMutation, useQuery } from '@apollo/client/react';
+import { REGISTER_MUTATION, GET_COUNTRIES } from '../graphql/operations';
 import MapPicker from '../components/common/MapPicker';
 
 export default function Register() {
@@ -19,6 +19,9 @@ export default function Register() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const navigate = useNavigate();
+
+  const { data: countriesData } = useQuery(GET_COUNTRIES);
+  const countries = countriesData?.countries || [];
 
   const [registerUser, { loading }] = useMutation(REGISTER_MUTATION, {
     onCompleted: () => {
@@ -43,14 +46,14 @@ export default function Register() {
     }));
   };
 
-  const getCountryCenter = (country) => {
+  const getCountryCenter = (countryName) => {
     const centers = {
       'Colombia': [4.6097, -74.0817],
       'Portugal': [38.7223, -9.1393],
       'España': [40.4168, -3.7038],
       'México': [19.4326, -99.1332]
     };
-    return centers[country] || [4.6097, -74.0817];
+    return centers[countryName] || [4.6097, -74.0817];
   };
 
   const handleSubmit = async (e) => {
@@ -164,10 +167,12 @@ export default function Register() {
                 onChange={handleChange}
                 className="block w-full px-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl text-brand-dark font-black focus:outline-none focus:ring-4 focus:ring-brand-orange/5 focus:border-brand-orange transition-all text-sm"
               >
-                <option value="Colombia">Colombia</option>
-                <option value="Portugal">Portugal</option>
-                <option value="España">España</option>
-                <option value="México">México</option>
+                {countries.length === 0 && (
+                  <option value="">Cargando países...</option>
+                )}
+                {countries.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
               </select>
             </div>
 

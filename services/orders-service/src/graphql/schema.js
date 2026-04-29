@@ -135,6 +135,7 @@ const typeDefs = gql`
       customer_email: String
       customer_document: String
       notes: String
+      currency: String
     ): Invoice!
 
     createPayment(order_id: ID!, method: String!, amount: Float!, currency: String): Payment!

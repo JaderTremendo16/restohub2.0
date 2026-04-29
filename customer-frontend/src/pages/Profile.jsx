@@ -21,7 +21,14 @@ import {
 } from "lucide-react";
 
 const Profile = () => {
-  const { user, updateUser, logout } = useAuth();
+  const { user, updateUser, logout, getCurrencyConfig } = useAuth();
+
+  const { data: countriesData, loading: loadingCountries } = useQuery(GET_COUNTRIES);
+  const { data: locationsData, loading: loadingLocations } = useQuery(GET_LOCATIONS);
+
+  const countries = countriesData?.countries || [];
+  const locations = locationsData?.locations || [];
+
   const [formData, setFormData] = useState({
     name: user?.name || "",
     email: user?.email || "",
@@ -34,12 +41,6 @@ const Profile = () => {
   });
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Queries dinámicas
-  const { data: countriesData, loading: loadingCountries } =
-    useQuery(GET_COUNTRIES);
-  const { data: locationsData, loading: loadingLocations } =
-    useQuery(GET_LOCATIONS);
-
   const [updateProfile, { loading: updating }] = useMutation(
     UPDATE_PROFILE_MUTATION,
     {
@@ -50,9 +51,6 @@ const Profile = () => {
       },
     },
   );
-
-  const countries = countriesData?.countries || [];
-  const locations = locationsData?.locations || [];
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -68,14 +66,9 @@ const Profile = () => {
     }));
   };
 
-  const getCountryCenter = (country) => {
-    const centers = {
-      Colombia: [4.6097, -74.0817],
-      Portugal: [38.7223, -9.1393],
-      España: [40.4168, -3.7038],
-      México: [19.4326, -99.1332],
-    };
-    return centers[country] || [4.6097, -74.0817];
+  const getCountryCenter = (countryName) => {
+    const country = countries.find(c => c.name === countryName);
+    return country ? null : [4.6097, -74.0817];
   };
 
   const handleSubmit = (e) => {
@@ -205,18 +198,17 @@ const Profile = () => {
                     size={18}
                   />
                   <select
-                    name="country"
-                    value={formData.country}
-                    onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 font-bold text-slate-800 appearance-none"
-                  >
-                    <option value="">Selecciona un país</option>
-                    {countries.map((c) => (
-                      <option key={c.id} value={c.name}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  name="country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-700 font-bold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all text-sm"
+                >
+                  {countries.map((c) => (
+                    <option key={c.id} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
                 </div>
               </div>
 

@@ -5,7 +5,8 @@ import {
   GET_CART, 
   REMOVE_FROM_CART, 
   UPDATE_CART_QTY, 
-  CLEAR_CART 
+  CLEAR_CART,
+  GET_LOYALTY_ACCOUNT
 } from '../graphql/operations';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -20,11 +21,17 @@ import {
 } from 'lucide-react';
 
 const Cart = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig, formatPrice } = useAuth();
   const navigate = useNavigate();
 
+  const { data: loyaltyData, refetch: refetchLoyalty } = useQuery(GET_LOYALTY_ACCOUNT, {
+    variables: { customerId: user?.id },
+    skip: !user,
+    notifyOnNetworkStatusChange: true,
+  });
+
   const { data, loading, refetch } = useQuery(GET_CART, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user
   });
 
@@ -97,7 +104,7 @@ const Cart = () => {
                   <h3 className="text-lg font-black text-slate-800 uppercase italic leading-none">{item.name}</h3>
                 </div>
                 <p className="text-brand-orange font-black text-sm">
-                  {item.price === 0 ? "GRATIS" : `$${item.price.toLocaleString()}`}
+                  {item.price === 0 ? "GRATIS" : formatPrice(item.price)}
                 </p>
               </div>
 
@@ -143,7 +150,7 @@ const Cart = () => {
             <div className="space-y-4 pt-4 border-t border-white/10">
               <div className="flex justify-between items-center text-slate-400 font-bold text-sm">
                 <span>Subtotal</span>
-                <span>${total.toLocaleString()}</span>
+                <span>{formatPrice(total)}</span>
               </div>
               <div className="flex justify-between items-center text-slate-400 font-bold text-sm">
                 <span>Envío</span>
@@ -152,7 +159,7 @@ const Cart = () => {
               
               <div className="flex justify-between items-center pt-4 border-t border-white/10">
                 <span className="text-lg font-black uppercase italic">Total</span>
-                <span className="text-2xl font-black text-brand-orange">${total.toLocaleString()}</span>
+                <span className="text-2xl font-black text-brand-orange">{formatPrice(total)}</span>
               </div>
             </div>
 

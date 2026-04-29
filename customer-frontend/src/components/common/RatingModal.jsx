@@ -126,7 +126,7 @@ const RatingModal = ({ dishName, onClose }) => {
         </div>
 
         {/* Right Side: My Review Form */}
-        <div className="w-full md:w-[350px] p-8 bg-slate-50/50">
+        <div className="w-full md:w-[350px] p-8 bg-slate-50/50 overflow-y-auto">
           <div className="flex justify-between items-center mb-6">
             <h5 className="font-black text-slate-900 uppercase tracking-widest text-xs">Tu Opinión</h5>
             <button onClick={onClose} className="p-2 hover:bg-slate-200 rounded-full transition-colors">
@@ -194,7 +194,7 @@ const RatingModal = ({ dishName, onClose }) => {
 
                 <button 
                   onClick={handleSubmit}
-                  className="w-full py-4 bg-brand-600 text-white rounded-2xl font-black text-sm shadow-lg shadow-brand-600/20 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
+                  className="w-full py-4 bg-brand-orange text-white rounded-2xl font-black text-sm shadow-lg shadow-brand-orange/20 hover:bg-brand-700 transition-all flex items-center justify-center gap-2"
                 >
                   <Send size={16} /> {myReview ? 'Guardar Cambios' : 'Enviar Reseña'}
                 </button>

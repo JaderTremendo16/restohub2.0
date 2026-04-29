@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 const CustomerHome = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig, formatPrice } = useAuth();
   const navigate = useNavigate();
 
   const { data: loyaltyData } = useQuery(GET_LOYALTY_ACCOUNT, {
@@ -89,15 +89,22 @@ const CustomerHome = () => {
   // La actividad reciente viene SOLO del historial de lealtad (loyalty-service)
   // para evitar mostrar puntos calculados incorrectamente desde el precio crudo.
   const combinedActivity = [
-    ...history.map((h, i) => ({
-      id: `h-${i}`,
-      type: h.actionType === 'earn' ? 'purchase' : 'loyalty',
-      title: h.description || (h.actionType === 'earn' ? 'Pedido completado' : 'Canje de puntos'),
-      desc: 'Fidelización',
-      value: h.points > 0 ? 'Crédito' : 'Canje',
-      points: h.points > 0 ? `+${h.points}` : h.points,
-      date: h.createdAt,
-    })),
+    ...history.map((h, i) => {
+      const cfg = getCurrencyConfig(user?.country);
+      const formattedAmount = h.totalAmount 
+        ? formatPrice(h.totalAmount)
+        : 'Fidelización';
+
+      return {
+        id: `h-${i}`,
+        type: h.actionType === 'earn' ? 'purchase' : 'loyalty',
+        title: h.description || (h.actionType === 'earn' ? 'Pedido completado' : 'Canje de puntos'),
+        desc: formattedAmount,
+        value: h.points > 0 ? 'Crédito' : 'Canje',
+        points: h.points > 0 ? `+${h.points}` : h.points,
+        date: h.createdAt,
+      };
+    }),
   ]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);

@@ -27,7 +27,7 @@ import {
 import { PayPalButtons } from "@paypal/react-paypal-js";
 
 const Checkout = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig, formatPrice } = useAuth();
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState(null); // 'cash' | 'paypal'
   const [deliveryDescription, setDeliveryDescription] = useState('');
@@ -124,23 +124,27 @@ const Checkout = () => {
       });
 
       // 3. Generar Factura y Registrar Pago para activar PUNTOS
+      const currencyCfg = getCurrencyConfig(user?.country);
+
+      // 4. Generar Factura
       await generateInvoice({
         variables: {
           order_id: realOrderId,
-          customer_name: user.name,
-          customer_email: user.email,
-          notes: deliveryDescription // Pasamos la descripción a la factura también
+          customer_name: user?.name,
+          customer_email: user?.email,
+          customer_document: user?.document || "N/A",
+          notes: deliveryLocation.address,
+          currency: currencyCfg.code
         }
       });
 
+      // 5. Registrar Pago
       await createPayment({
         variables: {
           order_id: realOrderId,
           method: paypalData ? "paypal" : "cash",
           amount: total,
-          currency: user?.country === 'Colombia' ? 'COP' : 
-                    user?.country === 'México' ? 'MXN' : 
-                    (['Portugal', 'España'].includes(user?.country)) ? 'EUR' : 'USD'
+          currency: currencyCfg.code
         }
       });
 
@@ -272,28 +276,14 @@ const Checkout = () => {
                     {item.name} <span className="text-brand-orange">x{item.quantity}</span>
                   </span>
                   <span className="text-slate-800">
-                    {item.price === 0 ? "GRATIS" : new Intl.NumberFormat(
-                      'es-CO', 
-                      { 
-                        style: 'currency', 
-                        currency: user?.country === 'Colombia' ? 'COP' : 'USD',
-                        minimumFractionDigits: 0 
-                      }
-                    ).format(item.price * item.quantity)}
+                    {item.price === 0 ? "GRATIS" : formatPrice(item.price * item.quantity)}
                   </span>
                 </div>
               ))}
               <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
                 <span className="text-lg font-black uppercase italic text-slate-800">Total</span>
                 <span className="text-2xl font-black text-brand-orange">
-                  {new Intl.NumberFormat(
-                    'es-CO', 
-                    { 
-                      style: 'currency', 
-                      currency: user?.country === 'Colombia' ? 'COP' : 'USD',
-                      minimumFractionDigits: 0 
-                    }
-                  ).format(total)}
+                  {formatPrice(total)}
                 </span>
               </div>
             </div>
@@ -346,7 +336,7 @@ const Checkout = () => {
                 {change > 0 ? (
                   <div className="flex justify-between items-center pt-2">
                     <span className="text-xs font-bold text-slate-400">Tu vuelto:</span>
-                    <span className="text-lg font-black text-emerald-400">${change.toLocaleString()}</span>
+                  <span className="text-lg font-black text-emerald-400">{formatPrice(change)}</span>
                   </div>
                 ) : cashAmount && parseFloat(cashAmount) < total && (
                   <div className="flex items-center gap-2 text-rose-400 text-[10px] font-bold uppercase">

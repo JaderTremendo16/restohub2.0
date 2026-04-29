@@ -182,16 +182,28 @@ export const ADD_ORDER_ITEMS = gql`
 `;
 
 export const GENERATE_INVOICE_MUTATION = gql`
-  mutation GenerateInvoice($order_id: ID!, $customer_name: String!, $customer_email: String!) {
-    generateInvoice(order_id: $order_id, customer_name: $customer_name, customer_email: $customer_email) {
+  mutation GenerateInvoice(
+    $order_id: ID!
+    $customer_name: String!
+    $customer_email: String
+    $notes: String
+    $currency: String
+  ) {
+    generateInvoice(
+      order_id: $order_id
+      customer_name: $customer_name
+      customer_email: $customer_email
+      notes: $notes
+      currency: $currency
+    ) {
       id
     }
   }
 `;
 
 export const CREATE_PAYMENT_MUTATION = gql`
-  mutation CreatePayment($order_id: ID!, $method: String!, $amount: Float!) {
-    createPayment(order_id: $order_id, method: $method, amount: $amount) {
+  mutation CreatePayment($order_id: ID!, $method: String!, $amount: Float!, $currency: String) {
+    createPayment(order_id: $order_id, method: $method, amount: $amount, currency: $currency) {
       id
       status
     }
@@ -337,6 +349,9 @@ export const GET_COUNTRIES = gql`
     countries {
       id
       name
+      currencyCode
+      currencySymbol
+      locale
     }
   }
 `;
@@ -543,3 +558,4 @@ export const GET_INVOICE = gql`
     }
   }
 `;
+

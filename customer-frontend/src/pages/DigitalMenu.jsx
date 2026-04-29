@@ -5,6 +5,9 @@ import {
   COMPLETE_ORDER_MUTATION,
   CREATE_REAL_ORDER,
   ADD_ORDER_ITEMS,
+  GET_CART,
+  ADD_TO_CART,
+  GET_LOCATIONS
 } from "../graphql/operations";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -20,12 +23,11 @@ import {
   Plus,
   Loader2
 } from "lucide-react";
-import { GET_CART, ADD_TO_CART } from "../graphql/operations";
 import RatingModal from "../components/common/RatingModal";
-import { GET_LOCATIONS } from "../graphql/operations";
 
 const DigitalMenu = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig, formatPrice } = useAuth();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [selectedDishForRating, setSelectedDishForRating] = useState(null);
@@ -38,8 +40,6 @@ const DigitalMenu = () => {
     variables: { OnlyActive: true },
     skip: !user,
   });
-
-  const navigate = useNavigate();
 
   const [completeOrder] = useMutation(COMPLETE_ORDER_MUTATION, {
     refetchQueries: ["GetOrders"],
@@ -223,14 +223,7 @@ const DigitalMenu = () => {
                 )}
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-slate-100/50">
                   <span className="text-xl font-black text-slate-900 leading-none">
-                    {new Intl.NumberFormat(
-                      'es-CO', 
-                      { 
-                        style: 'currency', 
-                        currency: user?.country === 'Colombia' ? 'COP' : 'USD',
-                        minimumFractionDigits: 0 
-                      }
-                    ).format(dish.price)}
+                    {formatPrice(dish.price)}
                   </span>
                 </div>
               </div>

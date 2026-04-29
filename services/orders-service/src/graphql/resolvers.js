@@ -1,6 +1,18 @@
 const db = require("../db/knex");
 const { publishMessage } = require("../messaging/publisher");
 
+// Divisor de puntos por moneda:
+// - Monedas de miles (COP, CLP, ARS, PYG): dividir entre 1000
+// - Monedas medias (MXN, UYU, GTQ): dividir entre 20
+// - Monedas base (USD, EUR, GBP, PEN...): dividir entre 1
+const getPointsDivisor = (currency) => {
+  const THOUSAND_BASE = ['COP', 'CLP', 'ARS', 'PYG'];
+  const TWENTY_BASE   = ['MXN', 'UYU', 'GTQ'];
+  if (THOUSAND_BASE.includes(currency)) return 1000;
+  if (TWENTY_BASE.includes(currency))   return 20;
+  return 1;
+};
+
 const MONTH_NAMES = [
   "",
   "Enero",
@@ -282,7 +294,7 @@ const resolvers = {
         });
       }
 
-      if (status === "delivered" && order.origin !== "pos") {
+      if (status === "delivered") {
         const items = await db("order_items").where({ order_id: id });
         await publishMessage("inventory_deduction_requested", {
           order_id: id,
@@ -293,24 +305,20 @@ const resolvers = {
           })),
         });
 
+        // PUNTOS PARA EFECTIVO: Se dan al entregar si ya está pagado
         if (order.customer_id) {
           const invoice = await db("invoices").where({ order_id: id }).first();
-          if (invoice && invoice.status === "paid") {
+          if (invoice && invoice.status === "paid" && invoice.payment_method === "cash") {
             const totalPaid = parseFloat(invoice.total);
-            const currency = invoice.currency || 'USD'; // Asumimos USD si no hay moneda
-            
-            let points_to_earn = Math.floor(totalPaid);
-            if (totalPaid > 1000) {
-              points_to_earn = Math.floor(totalPaid / 1000);
-            }
+            const currency = invoice.currency || "USD";
+            const divisor = getPointsDivisor(currency);
+            const points_to_earn = Math.floor(totalPaid / divisor);
 
             await publishMessage("order.completed", {
               customer_id: order.customer_id,
               points: points_to_earn,
               total_amount: totalPaid,
-            }).catch((err) =>
-              console.error("Error publishing loyalty points:", err),
-            );
+            }).catch((err) => console.error("Error loyalty cash delivery:", err));
           }
         }
       }
@@ -332,7 +340,7 @@ const resolvers = {
 
     generateInvoice: async (
       _,
-      { order_id, customer_name, customer_email, customer_document, notes },
+      { order_id, customer_name, customer_email, customer_document, notes, currency },
     ) => {
       const order = await db("orders").where({ id: order_id }).first();
       if (!order) throw new Error("Pedido no encontrado");
@@ -367,6 +375,7 @@ const resolvers = {
           customer_email: customer_email || null,
           customer_document: customer_document || null,
           notes: notes || null,
+          currency: currency || 'USD',
           status: "pending",
         })
         .returning("*");
@@ -438,25 +447,24 @@ const resolvers = {
           restaurant_id: order.restaurant_id,
           customer_id: order.customer_id,
         });
+      }
 
-        // Al cambiar a delivered, el punto de arriba (updateOrderStatus) no se disparará automáticamente
-        // por lo que debemos despachar los puntos aquí también si la orden pasa a delivered directo por el pago web.
-        if (order.customer_id) {
-          let points_to_earn = Math.floor(totalPaid);
-          if (currency === 'COP' || totalPaid > 1000) {
-            points_to_earn = Math.floor(totalPaid / 1000);
-          } else if (currency === 'MXN') {
-            points_to_earn = Math.floor(totalPaid / 20);
-          }
+      // PUBLICAR PUNTOS: 
+      // 1. Digitales: Siempre al pagar.
+      // 2. Efectivo: Solo si ya está entregado (evita puntos en pedidos web cash pendientes).
+      const shouldAwardPoints = (method !== "cash") || (order.status === "ready" || order.status === "delivered");
 
-          await publishMessage("order.completed", {
-            customer_id: order.customer_id,
-            points: points_to_earn,
-            total_amount: totalPaid,
-          }).catch((err) =>
-            console.error("Error publishing loyalty points:", err),
-          );
-        }
+      if (order.customer_id && shouldAwardPoints) {
+        const divisor = getPointsDivisor(currency || invoice.currency || "USD");
+        const points_to_earn = Math.floor(totalPaid / divisor);
+
+        await publishMessage("order.completed", {
+          customer_id: order.customer_id,
+          points: points_to_earn,
+          total_amount: totalPaid,
+        }).catch((err) =>
+          console.error("Error publishing loyalty points:", err),
+        );
       }
 
       return payment[0];

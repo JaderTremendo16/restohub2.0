@@ -122,7 +122,8 @@ function StatusProgress({ status }) {
 
 // ─── Tarjeta de pedido individual ──────────────────────────────────────────
 
-function OrderCard({ order, locations = [] }) {
+function OrderCard({ order, locations = [], userCountry }) {
+  const { getCurrencyConfig } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
   const Icon = cfg.icon;
@@ -149,10 +150,13 @@ function OrderCard({ order, locations = [] }) {
   const isActive = !['delivered', 'cancelled'].includes(order.status);
 
   const formattedDate = order.created_at
-    ? new Date(order.created_at).toLocaleString('es-CO', {
-        day: '2-digit', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      })
+    ? (() => {
+        const cfg = getCurrencyConfig(userCountry);
+        return new Date(order.created_at).toLocaleString(cfg.locale, {
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        });
+      })()
     : '—';
 
   return (
@@ -252,13 +256,27 @@ function OrderCard({ order, locations = [] }) {
                       <div className="text-xs text-slate-400 font-medium">x{item.quantity} unidades</div>
                     </div>
                     <div className="font-black text-slate-700 text-sm">
-                      ${parseFloat(item.subtotal || 0).toLocaleString('es-CO')}
+                        {(() => {
+                          const cfg = getCurrencyConfig(userCountry);
+                          return new Intl.NumberFormat(cfg.locale, {
+                            style: 'currency',
+                            currency: cfg.code,
+                            minimumFractionDigits: 0
+                          }).format(item.unit_price * item.quantity);
+                        })()}
                     </div>
                   </div>
                 ))}
                 <div className="flex justify-between items-center px-4 pt-2 border-t border-slate-200 mt-1">
                   <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Total</span>
-                  <span className="font-black text-brand-600 text-base">${total.toLocaleString('es-CO')}</span>
+                  <span className="font-black text-brand-600 text-base">{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(total);
+                  })()}</span>
                 </div>
               </>
             )}
@@ -271,15 +289,36 @@ function OrderCard({ order, locations = [] }) {
                 </h4>
                 <div className="flex justify-between text-xs font-medium text-slate-600">
                   <span>Subtotal:</span>
-                  <span>${parseFloat(invoice.subtotal).toLocaleString('es-CO')}</span>
+                  <span>{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(invoice.subtotal);
+                  })()}</span>
                 </div>
                 <div className="flex justify-between text-xs font-medium text-slate-600">
                   <span>Impuestos:</span>
-                  <span>${parseFloat(invoice.tax).toLocaleString('es-CO')}</span>
+                  <span>{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(invoice.tax);
+                  })()}</span>
                 </div>
                 <div className="flex justify-between text-xs font-black text-slate-800 border-t border-blue-200 pt-1 mt-1">
                   <span>Total Facturado:</span>
-                  <span className="text-blue-700">${parseFloat(invoice.total).toLocaleString('es-CO')}</span>
+                  <span className="text-blue-700">{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(invoice.total);
+                  })()}</span>
                 </div>
                 <div className="mt-2 text-[10px] font-bold text-blue-500 uppercase">
                   Estado: {invoice.status === "paid" ? "✅ Pagada" : "⏳ Pendiente"} | Medio: {invoice.payment_method || "N/A"}
@@ -296,7 +335,7 @@ function OrderCard({ order, locations = [] }) {
 // ─── Página principal ───────────────────────────────────────────────────────
 
 const OrderHistory = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig } = useAuth();
 
   const { data, loading, error } = useQuery(GET_LIVE_ORDERS, {
     variables: { cid: user?.id },
@@ -371,7 +410,7 @@ const OrderHistory = () => {
             En curso ({activeOrders.length})
           </h2>
           {activeOrders.map((order) => (
-            <OrderCard key={order.id} order={order} locations={locations} />
+            <OrderCard key={order.id} order={order} locations={locations} userCountry={user?.country} />
           ))}
         </section>
       )}
@@ -383,7 +422,7 @@ const OrderHistory = () => {
             Historial ({pastOrders.length})
           </h2>
           {pastOrders.map((order) => (
-            <OrderCard key={order.id} order={order} locations={locations} />
+            <OrderCard key={order.id} order={order} locations={locations} userCountry={user?.country} />
           ))}
         </section>
       )}
