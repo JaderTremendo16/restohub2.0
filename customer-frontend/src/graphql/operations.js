@@ -99,6 +99,7 @@ export const GET_DISHES = gql`
       name
       description
       category
+      image_url
       is_active
       prices {
         price
