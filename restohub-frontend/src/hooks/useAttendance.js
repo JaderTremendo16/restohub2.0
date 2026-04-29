@@ -1,4 +1,5 @@
-import { useMutation, gql } from "@apollo/client";
+import { useMutation } from "@apollo/client/react";
+import { gql } from "@apollo/client";
 import { useState } from "react";
 
 // 1. Definimos la mutación GraphQL según tu schema.js
