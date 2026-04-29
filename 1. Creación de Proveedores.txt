@@ -1,0 +1,118 @@
+1. Creación de Proveedores
+
+mutation {
+  createSupplier(input: {
+    name: "Distribuidora La Cosecha"
+    phone: "3001234567"
+    email: "contacto@lacosecha.com"
+  }) {
+    id
+    name
+    phone
+    is_active
+  }
+}
+
+mutation {
+  createSupplier(input: {
+    name: "Carnes Premium"
+    phone: "3109876543"
+    email: "ventas@carnespremium.co"
+  }) {
+    id
+    name
+    is_active
+  }
+}
+
+2. Creación de Ingredientes
+
+mutation {
+  createIngredient(input: {
+    name: "Harina de Trigo"
+    unit: kg
+    category: Cereales
+    cost_per_unit: 2500
+    supplier_id: 1
+  }) {
+    id
+    name
+    unit
+    category
+    cost_per_unit
+  }
+}
+
+mutation {
+  createIngredient(input: {
+    name: "Carne de Res"
+    unit: kg
+    category: Proteinas
+    cost_per_unit: 15000
+    supplier_id: 2
+  }) {
+    id
+    name
+    category
+    cost_per_unit
+  }
+}
+
+3. Consultar inventario completo
+query {
+  ingredients {
+    id
+    name
+    unit
+    category
+    cost_per_unit
+    is_active
+    supplier {
+      id
+      name
+      email
+    }
+  }
+}
+
+4. Consultar ingredientes Activos y consultar proveedores
+
+query {
+  ingredients(onlyActive: true) {
+    id
+    name
+    is_active
+  }
+}
+
+query {
+  supplier(id: "1") {
+    id
+    name
+    phone
+    email
+  }
+}
+
+5. Actualizar un ingrediente
+mutation {
+  updateIngredient(id: "1", input: {
+    name: "Harina de Trigo Especial"
+    cost_per_unit: 2800
+  }) {
+    id
+    name
+    cost_per_unit
+    updated_at
+  }
+}
+
+6. Desactivarlo
+
+mutation {
+  deactivateIngredient(id: "2") {
+    id
+    name
+    is_active
+  }
+}

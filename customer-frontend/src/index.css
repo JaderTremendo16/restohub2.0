@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-orange: #ea580c;
+  --color-brand-dark: #1a1a2e;
+}
+
+:root {
+  /* Light Mode Variables */
+  --bg-main: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-nav: #1a1a2e;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-nav: #94a3b8;
+  --accent: #ea580c;
+  --border-color: #e2e8f0;
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+:root.dark {
+  /* Dark Mode Variables */
+  --bg-main: #0f172a;
+  --bg-card: #1e293b;
+  --bg-nav: #1a1a2e;
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-nav: #94a3b8;
+  --accent: #f97316;
+  --border-color: #334155;
+  --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+}
+
+body {
+  background-color: var(--bg-main);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* Custom Utilities for Theme */
+.theme-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+}
+
+.theme-text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-main);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}

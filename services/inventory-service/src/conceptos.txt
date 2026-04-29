@@ -1,0 +1,4 @@
+¿Qué es un exchange?
+En RabbitMQ los mensajes no van directamente a una cola — van a un exchange, que es un punto de distribución. El exchange decide a qué colas enviar el mensaje.
+fanout significa que el mensaje se envía a todos los que estén escuchando ese exchange. Así si en el futuro varios servicios quieren recibir alertas de inventario, todos las reciben sin cambiar nada en este servicio.
+persistent: true significa que si RabbitMQ se reinicia, el mensaje no se pierde — queda guardado en disco hasta que alguien lo consuma.

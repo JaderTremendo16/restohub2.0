@@ -1,0 +1,40 @@
+# --- DEPENDENCIAS ---
+# Ignora node_modules en la raíz y en CUALQUIER subcarpeta
+node_modules/
+jspm_packages/
+web_modules/
+__pycache__/
+*.pyc
+
+# --- CONFIGURACIÓN Y SECRETOS ---
+# Nunca subir credenciales de DB o llaves de API
+
+
+# --- DOCKER ---
+# Archivos generados por Docker que no necesitas en el repo
+.dockerignore
+.DS_Store
+
+# --- LOGS Y TEMPORALES ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# --- COMPILACIÓN / BUILD ---
+# Ignora las carpetas de salida de NestJS, React o Vite
+dist/
+build/
+.next/
+out/
+bin/
+obj/
+
+# --- IDEs Y EDITORES ---
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj

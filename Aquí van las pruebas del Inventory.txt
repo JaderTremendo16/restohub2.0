@@ -1,0 +1,221 @@
+Aquí van las pruebas del Inventory Service para tu txt:
+
+---
+
+# Pruebas Inventory Service — Apollo Sandbox
+
+## Primero — Crear un pedido a proveedor
+
+```graphql
+mutation {
+  createSupplyOrder(input: {
+    supplier_id: 1
+    location_id: 1
+    total_cost: 150000
+    order_date: "2026-04-01"
+    notes: "Pedido mensual de ingredientes"
+  }) {
+    id
+    supplier_id
+    location_id
+    status
+    total_cost
+    order_date
+    notes
+  }
+}
+```
+
+## Segundo — Agregar ítems al pedido
+
+```graphql
+mutation {
+  addSupplyOrderItem(input: {
+    supply_order_id: 1
+    ingredient_id: 1
+    quantity: 50
+    unit: kg
+    unit_cost: 2500
+  }) {
+    id
+    supply_order_id
+    ingredient_id
+    quantity
+    unit
+    unit_cost
+    received_quantity
+  }
+}
+```
+
+## Tercero — Crear un lote
+
+```graphql
+mutation {
+  createBatch(input: {
+    supply_order_id: 1
+    ingredient_id: 1
+    location_id: 1
+    supplier_id: 1
+    entry_date: "2026-04-01"
+    expiration_date: "2026-04-04"
+    initial_quantity: 50
+    unit: kg
+  }) {
+    id
+    ingredient_id
+    expiration_date
+    initial_quantity
+    current_quantity
+    status
+  }
+}
+```
+
+## Cuarto — Marcar pedido como recibido
+
+```graphql
+mutation {
+  updateSupplyOrderStatus(id: "1", status: RECIBIDO) {
+    id
+    status
+    received_date
+  }
+}
+```
+
+## Quinto — Inicializar stock
+
+```graphql
+mutation {
+  upsertStock(input: {
+    ingredient_id: 1
+    location_id: 1
+    total_quantity: 50
+    unit: kg
+  }) {
+    id
+    ingredient_id
+    location_id
+    total_quantity
+    unit
+  }
+}
+```
+
+## Sexto — Ajustar stock con log automático
+
+```graphql
+mutation {
+  adjustStock(input: {
+    ingredient_id: 1
+    location_id: 1
+    quantity: 5
+    unit: kg
+    type: SALIDA
+    reason: "Uso en cocina"
+    reference_id: 1
+  }) {
+    id
+    total_quantity
+    updated_at
+  }
+}
+```
+
+## Séptimo — Consultar stock por sede
+
+```graphql
+query {
+  stocks(location_id: "1") {
+    id
+    ingredient_id
+    total_quantity
+    unit
+    updated_at
+  }
+}
+```
+
+## Octavo — Consultar logs de movimientos
+
+```graphql
+query {
+  inventoryLogs(location_id: "1") {
+    id
+    ingredient_id
+    type
+    quantity
+    unit
+    reason
+    created_at
+  }
+}
+```
+
+## Noveno — Configurar alerta de bajo stock
+
+```graphql
+mutation {
+  createLowStockConfig(input: {
+    ingredient_id: 1
+    location_id: 1
+    min_threshold: 10
+    unit: kg
+  }) {
+    id
+    ingredient_id
+    min_threshold
+    is_active
+  }
+}
+```
+
+## Décimo — Consultar lotes por vencer
+
+```graphql
+query {
+  expiringBatches(days: 3) {
+    id
+    ingredient_id
+    expiration_date
+    current_quantity
+    unit
+    status
+  }
+}
+```
+
+## Undécimo — Toggle de alerta
+
+```graphql
+mutation {
+  toggleLowStockConfig(id: "1") {
+    id
+    is_active
+  }
+}
+```
+
+## Duodécimo — Consultar pedidos por status
+
+```graphql
+query {
+  supplyOrders(status: RECIBIDO) {
+    id
+    supplier_id
+    status
+    received_date
+    items {
+      ingredient_id
+      quantity
+      unit
+      unit_cost
+      received_quantity
+    }
+  }
+}
+```
+
+---
+

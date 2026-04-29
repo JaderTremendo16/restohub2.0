@@ -1,0 +1,9 @@
+Esto es para poder crear una conexion entre python y nodejs para que se pueda comunicar con el Gateway
+
+Este servicio:
+
+Será GraphQL (igual que ingredients)
+Pero internamente llamará a FastAPI (REST)
+
+A diferencia de los otros subgrafos, el nuevo hará Esto
+axios.get("http://staff-api:8000/staff")

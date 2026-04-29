@@ -1,0 +1,6 @@
+Sinceramente ya aquí simplemente fué un copia y pega de gran parte de ingredientes en lo siguiente:
+1. Dockerfile
+2. package.json
+3. Estructura .env (solo cambia una que otra cosa).
+4. conexión a la bae de datos (knexfile.js y knex.js).
+

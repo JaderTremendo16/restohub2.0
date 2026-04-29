@@ -1,0 +1,34 @@
+No explicaré nada porque ya está explicado en el schema.js de ingredients-service. Aqui solo podré cosas referentes a lo que sucede Aqui:
+
+Antes que nada: 
+
+El hecho de que se ponga cada primera palabra en mayuscula en los tipos(types) e inputs es por organización
+ya que sigue un estándar de programación llamado PascalCase. El cual significa que la primera letra de cada palabra es mayuscula.
+Es parte de GraphQL.
+
+Ahora sí:
+
+ingredients y prices dentro de Dish
+type Dish {
+  ingredients: [DishIngredient!]!
+  prices: [MenuPrice!]!
+}
+Estos son campos resueltos, lo que significa que el cliente puede pedir un plato y recibir sus ingredientes y precios en la misma query. 
+Los resolvers harán las consultas necesarias. Si el cliente no los pide, no se consultan.
+
+extend type Ingredient @key(fields: "id") {
+  id: ID! @external
+  name: String! @external
+}
+Esto es para que el Gateway sepa como unir los datos o encontrar las referencias de otros microservicios. En este caso, el microservicio de ingredientes encontrado en el de menu.
+
+removeDishIngredient devuelve Boolean en lugar de Dish
+A diferencia de deactivateDish que desactiva sin borrar, aquí sí eliminamos el registro un plato puede dejar de llevar un ingrediente.
+No hay historial que preservar en dish_ingredients. Devolvemos Boolean porque no hay objeto que retornar después de eliminar.
+
+menuPrices(dish_id, restaurant_id)
+Ambos filtros son opcionales. Puedes consultar todos los precios de un plato, todos los precios de un restaurante, o ambos a la vez. 
+El resolver construirá la query dinámicamente según lo que el cliente mande.
+
+GraphQL no tiene un tipo de dato para fechas, por lo que se usa String.
+Ya en resolvers.js se convierte a Date.

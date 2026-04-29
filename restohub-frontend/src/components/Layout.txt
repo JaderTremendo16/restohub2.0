@@ -1,0 +1,5 @@
+¿Qué hace cada parte?
+flex min-h-screen — hace que el contenedor principal use Flexbox y ocupe al menos toda la altura de la pantalla. Flexbox por defecto pone los hijos en fila, entonces el Sidebar queda a la izquierda y el área de contenido a la derecha.
+flex-1 en el área derecha — le dice "ocupa todo el espacio horizontal que sobre después del sidebar". Sin esto, el área de contenido tendría ancho 0.
+<Outlet /> — aquí es donde React Router va a renderizar el componente de la página activa. Es el "hueco" del que te hablé antes.
+El header por ahora tiene el nombre hardcodeado "Gerente General" — más adelante cuando implementemos el login, esto lo leeremos del token JWT.

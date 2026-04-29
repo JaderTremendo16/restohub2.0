@@ -1,0 +1,31 @@
+Conceptos claves
+
+Este por ley es el más extenso ya que abarca tanto el microservicio de ingredientes, como el de paises_restaurantes y el de menu
+
+En esta parte de schema tiene muchas cosas
+
+Primero ¿Qué es cron job?
+Cron job es un programa que se ejecuta automáticamente en un servidor en intervalos específicos de tiempo.
+Por ejemplo, un cron job puede ejecutar una función cada noche a las 12:00 AM que sea verificar si hay lotes por vencer en los próximos 7 días.
+Esto será util ya que haremos el control de tiempo de los lotes, por ejemplo si un lote está por vencer en los próximos 7 días, se mostrará un evento o alerta en el dashboard del administrador.
+
+expiringBatches(days: Int!)
+Esta query es el complemento manual del cron job. 
+El cron corre automáticamente cada noche, pero esta query le permite a un administrador consultar en cualquier momento qué lotes están por vencer en los próximos days días. 
+El resolver hará el mismo cálculo que el cron, buscar lotes cuya expiration_date sea menor o igual a hoy más los días indicados.
+
+upsertStock
+Esta mutacion es una combinacion de update y insert. 
+Si el stock no existe, se inserta, si existe, se actualiza.
+
+adjustStock
+Es la operacion cotidiana de inventario, es decir, suma o resta la cantidad al saldo actual y se registra en el historial de inventario.
+
+toogleLowStockConfig
+Esta mutacion es para activar o desactivar una configuracion de stock bajo. En lugar de tener una mutacion para activar y otra para desactivar, se tiene una sola que hace ambas cosas.
+
+stock(ingredient_id, location_id)
+La query de un solo stock recibe dos argumentos porque no tiene un id único significativo para el cliente — lo que realmente identifica un stock es la combinación de ingrediente y sede. 
+Así el cliente puede pedir directamente "dame el stock del ingrediente 3 en la sede 1" sin necesidad de conocer el id interno.
+
+

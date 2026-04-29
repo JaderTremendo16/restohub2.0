@@ -1,0 +1,3 @@
+La diferencia con los demás servicios es que este no usa @apollo/subgraph, sino @apollo/gateway.
+Esto significa que el Gateway no tiene una base de datos propia, ni un schema propio, si no que lo construye dinamicamente a partir de los schemas de los servicios o subgrafos.
+

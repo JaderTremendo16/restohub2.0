@@ -1,0 +1,44 @@
+Lo mismo que el resolver de ingredient service
+
+Resolver anidados es una funcion de GraphQL que se encarga de unir tablas, es decir, que se encarga de hacer los JOIN en SQL.
+
+Ejemplo para que lo entiendan:
+Imagina que GraphQL es un "mesero" y tú eres el cliente.
+1. El Resolver Normal (La Query)
+Tú le pides al mesero: "Tráeme la información del plato #5".
+El mesero va a la cocina (base de datos), mira la ficha del plato y te trae: "Es una Pizza Pepperoni".
+En código: Query: { dish: ... }
+
+
+2. El Resolver Anidado:
+Ahora, tú le dices: "Tráeme la Pizza Pepperoni y dime qué ingredientes trae".
+El mesero primero identifica la Pizza (el objeto padre).
+Como vio que pediste ingredients, el mesero vuelve a la cocina y pregunta: "Oye, para ESTA pizza que acabo de encontrar, 
+¿qué ingredientes hay en la tabla de dish_ingredients?". Te trae la lista.
+
+En otras palabras, es una funcion que espera a que el objeto principal aparezca para luego buscar la informacion relacionada con ese objeto.
+
+Conceptos clave:
+Resolvers anidados Dish.ingredients y Dish.prices
+
+Dish: {
+  ingredients: async (parent) => {
+    return db('dish_ingredients').where({ dish_id: parent.id })
+  },
+  prices: async (parent) => {
+    return db('menu_prices').where({ dish_id: parent.id })
+  },
+}
+
+Estos solo se ejecutan si el cliente pidió esos campos. parent es el plato ya resuelto 
+de ahí sacas el id para buscar sus ingredientes y precios. Si el cliente solo pide name y category, estas funciones nunca se llaman.
+
+Filtros dinámicos en menuPrices
+const query = database('menu_prices')
+if (dish_id) query.where({ dish_id: parseInt(dish_id) })
+if (restaurant_id) query.where({ restaurant_id: parseInt(restaurant_id) })
+return query
+Construyes la query paso a paso. Si el cliente manda ambos filtros, aplicas los dos. Si solo manda uno, aplicas ese. 
+Si no manda ninguno, devuelves todos los precios. Knex encadena los .where() con AND automáticamente.
+
+
