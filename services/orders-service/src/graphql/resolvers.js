@@ -292,6 +292,27 @@ const resolvers = {
             quantity: i.quantity,
           })),
         });
+
+        if (order.customer_id) {
+          const invoice = await db("invoices").where({ order_id: id }).first();
+          if (invoice && invoice.status === "paid") {
+            const totalPaid = parseFloat(invoice.total);
+            const currency = invoice.currency || 'USD'; // Asumimos USD si no hay moneda
+            
+            let points_to_earn = Math.floor(totalPaid);
+            if (totalPaid > 1000) {
+              points_to_earn = Math.floor(totalPaid / 1000);
+            }
+
+            await publishMessage("order.completed", {
+              customer_id: order.customer_id,
+              points: points_to_earn,
+              total_amount: totalPaid,
+            }).catch((err) =>
+              console.error("Error publishing loyalty points:", err),
+            );
+          }
+        }
       }
 
       return updated[0];
@@ -311,7 +332,7 @@ const resolvers = {
 
     generateInvoice: async (
       _,
-      { order_id, customer_name, customer_email, customer_document },
+      { order_id, customer_name, customer_email, customer_document, notes },
     ) => {
       const order = await db("orders").where({ id: order_id }).first();
       if (!order) throw new Error("Pedido no encontrado");
@@ -345,6 +366,7 @@ const resolvers = {
           customer_name,
           customer_email: customer_email || null,
           customer_document: customer_document || null,
+          notes: notes || null,
           status: "pending",
         })
         .returning("*");
@@ -352,7 +374,7 @@ const resolvers = {
       return invoice[0];
     },
 
-    createPayment: async (_, { order_id, method, amount }) => {
+    createPayment: async (_, { order_id, method, amount, currency }) => {
       const order = await db("orders").where({ id: order_id }).first();
       if (!order) throw new Error("Pedido no encontrado");
 
@@ -416,17 +438,25 @@ const resolvers = {
           restaurant_id: order.restaurant_id,
           customer_id: order.customer_id,
         });
-      }
 
-      if (order.customer_id) {
-        const points_to_earn = Math.floor(totalPaid);
-        await publishMessage("order.completed", {
-          customer_id: order.customer_id,
-          points: points_to_earn,
-          total_amount: totalPaid,
-        }).catch((err) =>
-          console.error("Error publishing loyalty points:", err),
-        );
+        // Al cambiar a delivered, el punto de arriba (updateOrderStatus) no se disparará automáticamente
+        // por lo que debemos despachar los puntos aquí también si la orden pasa a delivered directo por el pago web.
+        if (order.customer_id) {
+          let points_to_earn = Math.floor(totalPaid);
+          if (currency === 'COP' || totalPaid > 1000) {
+            points_to_earn = Math.floor(totalPaid / 1000);
+          } else if (currency === 'MXN') {
+            points_to_earn = Math.floor(totalPaid / 20);
+          }
+
+          await publishMessage("order.completed", {
+            customer_id: order.customer_id,
+            points: points_to_earn,
+            total_amount: totalPaid,
+          }).catch((err) =>
+            console.error("Error publishing loyalty points:", err),
+          );
+        }
       }
 
       return payment[0];

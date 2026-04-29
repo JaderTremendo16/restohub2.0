@@ -53,7 +53,7 @@ const DigitalMenu = () => {
   });
 
   const { data: cartData } = useQuery(GET_CART, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user,
   });
 
@@ -90,15 +90,11 @@ const DigitalMenu = () => {
     
     let price = priceObj?.price ?? 0;
     
-    // CORRECCIÓN CRÍTICA: Si el precio viene multiplicado por 1000 (ej: 650000), lo normalizamos.
-    if (price > 10000) {
-      price = price / 1000;
-    }
-
     return {
       ...d,
-      price: price,
-      emoji: "🍽️",
+      price: parseFloat(price),
+      emoji: d.emoji || "🍽️",
+      imageUrl: d.image_url,
       isActive: d.is_active,
     };
   });
@@ -213,13 +209,28 @@ const DigitalMenu = () => {
               key={dish.id}
               className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col h-full"
             >
-              <div className="h-48 bg-slate-50 flex items-center justify-center relative overflow-hidden shrink-0">
-                <div className="text-7xl group-hover:scale-125 transition-transform duration-500 select-none">
-                  {dish.emoji}
-                </div>
+              <div className="h-48 bg-slate-100 flex items-center justify-center relative overflow-hidden shrink-0">
+                {dish.imageUrl ? (
+                  <img 
+                    src={dish.imageUrl} 
+                    alt={dish.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                  />
+                ) : (
+                  <div className="text-7xl group-hover:scale-125 transition-transform duration-500 select-none">
+                    {dish.emoji}
+                  </div>
+                )}
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-slate-100/50">
                   <span className="text-xl font-black text-slate-900 leading-none">
-                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(dish.price)}
+                    {new Intl.NumberFormat(
+                      'es-CO', 
+                      { 
+                        style: 'currency', 
+                        currency: user?.country === 'Colombia' ? 'COP' : 'USD',
+                        minimumFractionDigits: 0 
+                      }
+                    ).format(dish.price)}
                   </span>
                 </div>
               </div>

@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   History, ChefHat, Package, CheckCircle2, Clock,
   Truck, XCircle, ShoppingBag, ChevronDown, ChevronUp,
-  Utensils, CalendarDays, FileText
+  Utensils, CalendarDays, FileText, MessageSquare
 } from 'lucide-react';
 
 // ─── Configuración de estados ───────────────────────────────────────────────
@@ -211,6 +211,17 @@ function OrderCard({ order, locations = [] }) {
             </div>
           )}
         </div>
+
+        {/* Indicaciones de entrega */}
+        {order.notes && (
+          <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+            <MessageSquare size={13} className="text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-800 font-medium leading-relaxed">
+              <span className="font-black uppercase tracking-wide text-amber-600">Indicaciones: </span>
+              {order.notes.replace(/^Indicaciones: /, '').split('. Pagado')[0].split('. Pago en efectivo')[0]}
+            </p>
+          </div>
+        )}
 
         {/* Expandir ítems */}
         <button

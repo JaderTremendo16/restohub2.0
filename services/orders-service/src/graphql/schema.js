@@ -46,6 +46,7 @@ const typeDefs = gql`
     customer_email: String
     customer_document: String
     payment_method: String
+    notes: String
     created_at: String
   }
 
@@ -133,9 +134,10 @@ const typeDefs = gql`
       customer_name: String!
       customer_email: String
       customer_document: String
+      notes: String
     ): Invoice!
 
-    createPayment(order_id: ID!, method: String!, amount: Float!): Payment!
+    createPayment(order_id: ID!, method: String!, amount: Float!, currency: String): Payment!
     createWompiPaymentLink(order_id: ID!): WompiPaymentLink!
   }
 `;

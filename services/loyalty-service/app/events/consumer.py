@@ -57,8 +57,10 @@ def _process_event(data: dict) -> None:
     total_amount: float = float(data.get("total_amount", 0))
     points_override: int = int(data.get("points", 0))
 
-    # Prioridad: si viene total_amount calculamos; si no, usamos points directo
-    points = _calculate_points(total_amount) if total_amount > 0 else points_override
+    # Prioridad: si viene points precalculado (desde orders-service) lo usamos directamente.
+    # Solo calculamos desde total_amount si no hay points ya calculados.
+    # Esto evita que 23.400 COP se conviertan en 23.400 puntos en lugar de 23.
+    points = points_override if points_override > 0 else _calculate_points(total_amount)
 
     if not customer_id:
         logger.warning("[loyalty consumer] order.completed sin customer_id — ignorando.")
@@ -137,9 +139,9 @@ async def _on_order_completed_direct(message: aio_pika.IncomingMessage) -> None:
 
 async def start_consumer() -> None:
     """
-    Inicia DOS consumidores:
-      1. Cola directa 'order.completed'  ← compatible con publisher.js actual
-      2. Exchange topic 'restohub_events' routing_key='order.completed'  ← patrón nuevo
+    Inicia UN solo consumidor en la cola directa 'order.completed'.
+    Se eliminó el listener del exchange topic para evitar doble consumo
+    cuando el mismo mensaje llega por ambos canales.
     """
     await asyncio.sleep(6)
     retry = 0
@@ -149,23 +151,11 @@ async def start_consumer() -> None:
             channel = await connection.channel()
             await channel.set_qos(prefetch_count=10)
 
-            # ── 1. Cola directa (orders-service Node.js actual) ───────────
+            # Cola directa — único canal de entrada para puntos de lealtad
             direct_queue = await channel.declare_queue("order.completed", durable=True)
             await direct_queue.consume(_on_order_completed_direct)
-            logger.info("[loyalty consumer] Escuchando cola directa: order.completed")
+            logger.info("[loyalty consumer] ✓ Escuchando cola directa: order.completed")
 
-            # ── 2. Exchange TOPIC (arquitectura federada futura) ──────────
-            exchange = await channel.declare_exchange(
-                EXCHANGE_NAME, aio_pika.ExchangeType.TOPIC, durable=True
-            )
-            topic_queue = await channel.declare_queue(
-                "order.completed.loyalty_points", durable=True
-            )
-            await topic_queue.bind(exchange, routing_key="order.completed")
-            await topic_queue.consume(_on_order_completed_topic)
-            logger.info("[loyalty consumer] Escuchando exchange topic: order.completed")
-
-            logger.info("[loyalty consumer] ✓ Listo. Esperando eventos...")
             await asyncio.Future()  # Bloquear para siempre
 
         except Exception as exc:

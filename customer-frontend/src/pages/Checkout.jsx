@@ -30,6 +30,7 @@ const Checkout = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [paymentMethod, setPaymentMethod] = useState(null); // 'cash' | 'paypal'
+  const [deliveryDescription, setDeliveryDescription] = useState('');
   const [cashAmount, setCashAmount] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showAddressMap, setShowAddressMap] = useState(false);
@@ -45,13 +46,13 @@ const Checkout = () => {
   });
 
   const { data, loading } = useQuery(GET_CART, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user
   });
 
   const [updateProfile] = useMutation(UPDATE_PROFILE_MUTATION);
   const [completeOrder] = useMutation(COMPLETE_ORDER_MUTATION, {
-    refetchQueries: [{ query: GET_CART, variables: { customerId: user.id } }]
+    refetchQueries: [{ query: GET_CART, variables: { customerId: user?.id } }]
   });
 
   const [createRealOrder] = useMutation(CREATE_REAL_ORDER);
@@ -64,8 +65,6 @@ const Checkout = () => {
   const items = data?.cart?.items || [];
   const total = items.reduce((acc, item) => {
     let itemPrice = Number(item.price);
-    // Normalización de emergencia para precios gigantes
-    if (itemPrice > 10000) itemPrice = itemPrice / 1000;
     return acc + (itemPrice * item.quantity);
   }, 0);
   const change = cashAmount ? parseFloat(cashAmount) - total : 0;
@@ -90,14 +89,18 @@ const Checkout = () => {
       );
       const branchId = currentLocation ? currentLocation.id : (user.branch || "General");
 
+      // Combinar notas de pago con indicaciones de entrega
+      const finalNotes = `Indicaciones: ${deliveryDescription || 'Ninguna'}. ` + 
+                         (paypalData ? `Pagado via PayPal (${paypalData.id})` : `Pago en efectivo (Cambio: $${change})`);
+
       // 1. Crear la orden real para Cocina (orders-service)
       const { data: orderData } = await createRealOrder({
         variables: {
           restaurant_id: branchId,
-          customer_id: user.id,
+          customer_id: user?.id,
           channel: "web",
           priority: "normal",
-          notes: paypalData ? `Pagado via PayPal (${paypalData.id})` : `Pago en efectivo (Cambio: $${change})`
+          notes: finalNotes
         }
       });
 
@@ -109,7 +112,6 @@ const Checkout = () => {
           order_id: realOrderId,
           items: items.map(i => {
             let p = parseFloat(i.price);
-            if (p > 10000) p = p / 1000;
             return {
               product_id: i.productId,
               product_name: i.name,
@@ -122,12 +124,12 @@ const Checkout = () => {
       });
 
       // 3. Generar Factura y Registrar Pago para activar PUNTOS
-      // Solo si es PayPal o si quieres que el efectivo sume puntos de una (asumimos pago exitoso)
       await generateInvoice({
         variables: {
           order_id: realOrderId,
           customer_name: user.name,
-          customer_email: user.email
+          customer_email: user.email,
+          notes: deliveryDescription // Pasamos la descripción a la factura también
         }
       });
 
@@ -135,17 +137,20 @@ const Checkout = () => {
         variables: {
           order_id: realOrderId,
           method: paypalData ? "paypal" : "cash",
-          amount: total
+          amount: total,
+          currency: user?.country === 'Colombia' ? 'COP' : 
+                    user?.country === 'México' ? 'MXN' : 
+                    (['Portugal', 'España'].includes(user?.country)) ? 'EUR' : 'USD'
         }
       });
 
       // 4. Registrar en el historial (customer-service) y limpiar carrito
       await completeOrder({
         variables: {
-          cid: user.id,
+          cid: user?.id,
           items: JSON.stringify(items.map(i => ({ name: i.name, price: i.price, qty: i.quantity }))),
           total: total,
-          branch: user.branch || "General",
+          branch: user?.branch || "General",
           orderId: realOrderId
         }
       });
@@ -155,7 +160,7 @@ const Checkout = () => {
         if (item.isReward) {
           const rewardId = item.productId.replace('reward-', '');
           await redeemPoints({
-            variables: { cid: user.id, rid: rewardId }
+            variables: { cid: user?.id, rid: rewardId }
           });
         }
       }
@@ -209,17 +214,28 @@ const Checkout = () => {
               <MapPin className="text-brand-orange" size={24} /> Entrega en:
             </h3>
             
-            <div className="space-y-4">
-              <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                <p className="text-sm font-bold text-slate-800">{deliveryLocation.address || "No has definido una dirección"}</p>
-                <p className="text-xs text-slate-400 mt-1">{deliveryLocation.city || "Sin ciudad"}, {deliveryLocation.country || "Sin país"}</p>
+              {/* CAJA DE INDICACIONES - SIEMPRE VISIBLE */}
+              <div className="p-6 bg-brand-orange/5 rounded-3xl border-2 border-brand-orange/20 space-y-3">
+                <label className="flex items-center gap-2 text-xs font-black uppercase text-brand-orange tracking-widest">
+                  <span className="bg-brand-orange text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px]">1</span>
+                  Indicaciones para el repartidor
+                </label>
+                <textarea 
+                  value={deliveryDescription}
+                  onChange={(e) => setDeliveryDescription(e.target.value)}
+                  placeholder="Ej: Casa azul con rejas blancas, tocar el timbre fuerte..."
+                  className="w-full bg-white border border-slate-100 rounded-2xl p-4 text-sm font-medium outline-none focus:ring-2 ring-brand-orange/20 transition-all min-h-[80px] resize-none shadow-sm"
+                />
+                <p className="text-[10px] text-slate-400 font-medium italic">
+                  * Estos detalles ayudarán a que tu pedido llegue más rápido.
+                </p>
               </div>
               
               <button 
                 onClick={() => setShowAddressMap(!showAddressMap)}
-                className="text-brand-orange text-xs font-black uppercase tracking-widest hover:underline"
+                className="w-full py-4 px-6 bg-slate-900 text-white rounded-3xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
               >
-                {showAddressMap ? "Cerrar Mapa" : "Ver / Cambiar Ubicación en Mapa"}
+                <MapPin size={16} /> {showAddressMap ? "Cerrar Mapa" : "Cambiar ubicación en el Mapa"}
               </button>
 
               {showAddressMap && (
@@ -229,7 +245,7 @@ const Checkout = () => {
                     lng={deliveryLocation.lng} 
                     address={deliveryLocation.address}
                     suggestedCenter={getCountryCenter(deliveryLocation.country)}
-                    branchLocation={locData?.locations?.find(loc => loc.name?.trim().toLowerCase() === user.branch?.trim().toLowerCase())}
+                    branchLocation={locData?.locations?.find(loc => loc.name?.trim().toLowerCase() === user?.branch?.trim().toLowerCase())}
                     onValidationChange={(isOut) => setIsOutOfRange(isOut)}
                     onChange={(lat, lng, address) => {
                       setDeliveryLocation(prev => ({
@@ -246,7 +262,6 @@ const Checkout = () => {
                 </div>
               )}
             </div>
-          </div>
 
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
             <h3 className="text-xl font-black text-slate-800 uppercase italic">Resumen de tu orden</h3>
@@ -257,14 +272,28 @@ const Checkout = () => {
                     {item.name} <span className="text-brand-orange">x{item.quantity}</span>
                   </span>
                   <span className="text-slate-800">
-                    {item.price === 0 ? "GRATIS" : new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(item.price * item.quantity)}
+                    {item.price === 0 ? "GRATIS" : new Intl.NumberFormat(
+                      'es-CO', 
+                      { 
+                        style: 'currency', 
+                        currency: user?.country === 'Colombia' ? 'COP' : 'USD',
+                        minimumFractionDigits: 0 
+                      }
+                    ).format(item.price * item.quantity)}
                   </span>
                 </div>
               ))}
               <div className="pt-4 border-t border-slate-100 flex justify-between items-center">
                 <span className="text-lg font-black uppercase italic text-slate-800">Total</span>
                 <span className="text-2xl font-black text-brand-orange">
-                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(total)}
+                  {new Intl.NumberFormat(
+                    'es-CO', 
+                    { 
+                      style: 'currency', 
+                      currency: user?.country === 'Colombia' ? 'COP' : 'USD',
+                      minimumFractionDigits: 0 
+                    }
+                  ).format(total)}
                 </span>
               </div>
             </div>

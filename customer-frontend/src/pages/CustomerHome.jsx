@@ -23,11 +23,13 @@ const CustomerHome = () => {
   const { data: loyaltyData } = useQuery(GET_LOYALTY_ACCOUNT, {
     variables: { customerId: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const { data: historyData } = useQuery(GET_POINT_HISTORY, {
     variables: { customerId: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const { data: promoData } = useQuery(GET_PROMOTIONS, {
@@ -37,11 +39,13 @@ const CustomerHome = () => {
   const { data: ordersData } = useQuery(GET_ORDERS, {
     variables: { cid: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const { data: ratingsData } = useQuery(GET_CUSTOMER_RATINGS, {
     variables: { cid: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const loyalty = loyaltyData?.loyaltyAccount;
@@ -82,25 +86,15 @@ const CustomerHome = () => {
     platinum: "from-brand-900 to-brand-dark",
   };
 
+  // La actividad reciente viene SOLO del historial de lealtad (loyalty-service)
+  // para evitar mostrar puntos calculados incorrectamente desde el precio crudo.
   const combinedActivity = [
-    // Solo mostramos como "Compra" si el precio es > 0, para no duplicar con el evento de "Canje"
-    ...orders
-      .filter(o => Number(o.totalPrice) > 0)
-      .map((o) => ({
-        id: o.id,
-        type: "purchase",
-        title: "Compra en Sede",
-        desc: o.branch,
-        value: `-$${Number(o.totalPrice).toLocaleString()}`,
-        points: `+${Math.floor(Number(o.totalPrice))}`, // 1 USD = 1 Punto
-        date: o.createdAt,
-      })),
     ...history.map((h, i) => ({
       id: `h-${i}`,
-      type: "loyalty",
-      title: h.description || h.actionType,
-      desc: "Fidelización",
-      value: h.points > 0 ? "Crédito" : "Canje",
+      type: h.actionType === 'earn' ? 'purchase' : 'loyalty',
+      title: h.description || (h.actionType === 'earn' ? 'Pedido completado' : 'Canje de puntos'),
+      desc: 'Fidelización',
+      value: h.points > 0 ? 'Crédito' : 'Canje',
       points: h.points > 0 ? `+${h.points}` : h.points,
       date: h.createdAt,
     })),
