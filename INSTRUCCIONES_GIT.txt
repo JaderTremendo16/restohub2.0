@@ -1,7 +1,0 @@
-COMANDO PARA HACER EL MERGE SIN PERDER TUS CAMBIOS:
-
-git merge origin/restohub2.0final --allow-unrelated-histories -X ours
-
-Explicación:
-- El parámetro '-X ours' hace que Git siempre prefiera TU código en caso de conflicto.
-- Tus modificaciones se mantendrán intactas.

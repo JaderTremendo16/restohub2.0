@@ -1,0 +1,11 @@
+{
+  "name": "restohub-global-tests",
+  "version": "1.0.0",
+  "description": "Configuración global para pruebas de múltiples microservicios",
+  "scripts": {
+    "test:coverage:all": "jest --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  }
+}
