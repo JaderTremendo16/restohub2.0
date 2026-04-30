@@ -7,8 +7,7 @@ import {
   ADD_ORDER_ITEMS,
   GET_CART,
   ADD_TO_CART,
-  GET_LOCATIONS,
-  GET_INGREDIENTS
+  GET_LOCATIONS
 } from "../graphql/operations";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -27,16 +26,8 @@ import {
 import RatingModal from "../components/common/RatingModal";
 
 const DigitalMenu = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig, formatPrice } = useAuth();
   const navigate = useNavigate();
-
-  const formatPrice = (val) => {
-    return new Intl.NumberFormat("es-CO", {
-      style: "currency",
-      currency: "COP",
-      minimumFractionDigits: 0,
-    }).format(val || 0);
-  };
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [selectedDishForRating, setSelectedDishForRating] = useState(null);
@@ -47,7 +38,6 @@ const DigitalMenu = () => {
   // que no mapean directamente a los IDs numéricos del menu-service.
   const { data, loading, error, refetch } = useQuery(GET_DISHES, {
     variables: { OnlyActive: true },
-    fetchPolicy: "network-only",
     skip: !user,
   });
 
@@ -86,13 +76,6 @@ const DigitalMenu = () => {
   );
   const currentLocationId = currentLocation ? parseInt(currentLocation.id) : null;
 
-  // Fetch ingredients directly to bypass the Federation ghost cache issue
-  const { data: ingData } = useQuery(GET_INGREDIENTS, {
-    variables: { location_id: currentLocationId },
-    fetchPolicy: "network-only",
-    skip: !user,
-  });
-
   // Normalizar platos del menu-service real al formato que usa el componente
   const rawDishes = data?.dishes || [];
   const dishes = rawDishes.map((d) => {
@@ -107,19 +90,12 @@ const DigitalMenu = () => {
     
     let price = priceObj?.price ?? 0;
     
-    const hasInactiveIngredients = d.ingredients?.some(ing => {
-      const localIng = ingData?.ingredients?.find(i => String(i.id) === String(ing.ingredient?.id));
-      if (localIng) return !localIng.is_active;
-      return ing.ingredient && !ing.ingredient.is_active;
-    });
-    const isUnavailable = !d.is_active || hasInactiveIngredients || d.isAvailable === false || price <= 0;
-
     return {
       ...d,
       price: parseFloat(price),
       emoji: d.emoji || "🍽️",
       imageUrl: d.image_url,
-      isActive: !isUnavailable,
+      isActive: d.is_active,
     };
   });
 
@@ -129,9 +105,6 @@ const DigitalMenu = () => {
   ];
 
   const filteredDishes = dishes.filter((dish) => {
-    // Solo mostrar platos activos
-    if (!dish.isActive) return false;
-    
     const matchesSearch =
       dish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       dish.description?.toLowerCase().includes(searchTerm.toLowerCase());

@@ -14,22 +14,22 @@ import {
   ChevronRight,
   Crown,
   Gift,
-  Zap,
-  ArrowUpRight,
 } from "lucide-react";
 
 const CustomerHome = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig, formatPrice } = useAuth();
   const navigate = useNavigate();
 
   const { data: loyaltyData } = useQuery(GET_LOYALTY_ACCOUNT, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const { data: historyData } = useQuery(GET_POINT_HISTORY, {
-    variables: { customerId: user.id },
+    variables: { customerId: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const { data: promoData } = useQuery(GET_PROMOTIONS, {
@@ -39,11 +39,13 @@ const CustomerHome = () => {
   const { data: ordersData } = useQuery(GET_ORDERS, {
     variables: { cid: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const { data: ratingsData } = useQuery(GET_CUSTOMER_RATINGS, {
     variables: { cid: user?.id },
     skip: !user,
+    fetchPolicy: 'network-only',
   });
 
   const loyalty = loyaltyData?.loyaltyAccount;
@@ -84,25 +86,25 @@ const CustomerHome = () => {
     platinum: "from-brand-900 to-brand-dark",
   };
 
+  // La actividad reciente viene SOLO del historial de lealtad (loyalty-service)
+  // para evitar mostrar puntos calculados incorrectamente desde el precio crudo.
   const combinedActivity = [
-    ...orders.map((o) => ({
-      id: o.id,
-      type: "purchase",
-      title: "Compra en Sede",
-      desc: o.branch,
-      value: `-$${o.totalPrice.toLocaleString()}`,
-      points: `+${Math.floor(o.totalPrice / 1000)}`,
-      date: o.createdAt,
-    })),
-    ...history.map((h, i) => ({
-      id: `h-${i}`,
-      type: "loyalty",
-      title: h.description || h.actionType,
-      desc: "Fidelización",
-      value: h.points > 0 ? "Crédito" : "Canje",
-      points: h.points > 0 ? `+${h.points}` : h.points,
-      date: h.createdAt,
-    })),
+    ...history.map((h, i) => {
+      const cfg = getCurrencyConfig(user?.country);
+      const formattedAmount = h.totalAmount 
+        ? formatPrice(h.totalAmount)
+        : 'Fidelización';
+
+      return {
+        id: `h-${i}`,
+        type: h.actionType === 'earn' ? 'purchase' : 'loyalty',
+        title: h.description || (h.actionType === 'earn' ? 'Pedido completado' : 'Canje de puntos'),
+        desc: formattedAmount,
+        value: h.points > 0 ? 'Crédito' : 'Canje',
+        points: h.points > 0 ? `+${h.points}` : h.points,
+        date: h.createdAt,
+      };
+    }),
   ]
     .sort((a, b) => new Date(b.date) - new Date(a.date))
     .slice(0, 5);

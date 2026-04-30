@@ -105,7 +105,7 @@ const LocationSelector = () => {
                     2. Selecciona tu Sede en {selectedCountry?.name}
                   </label>
                   {locations
-                    .filter(loc => String(loc.countryId) === String(selectedCountry?.id))
+                    .filter(loc => loc.countryId === selectedCountry?.id)
                     .map((loc) => (
                       <button
                         key={loc.id}
@@ -125,7 +125,7 @@ const LocationSelector = () => {
                         {loadingAction && <Loader2 className="animate-spin" size={16} />}
                       </button>
                     ))}
-                  {locations.filter(loc => String(loc.countryId) === String(selectedCountry?.id)).length === 0 && (
+                  {locations.filter(loc => loc.countryId === selectedCountry?.id).length === 0 && (
                     <p className="text-slate-400 italic py-4 text-sm">No hay sedes en este país.</p>
                   )}
                   

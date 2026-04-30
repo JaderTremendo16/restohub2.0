@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useQuery } from '@apollo/client/react';
-import { GET_LIVE_ORDERS, GET_ORDER_ITEMS_LIVE, GET_LOCATIONS } from '../graphql/operations';
+import { GET_LIVE_ORDERS, GET_ORDER_ITEMS_LIVE, GET_LOCATIONS, GET_INVOICE } from '../graphql/operations';
 import { useAuth } from '../context/AuthContext';
 import {
   History, ChefHat, Package, CheckCircle2, Clock,
   Truck, XCircle, ShoppingBag, ChevronDown, ChevronUp,
-  Utensils, CalendarDays
+  Utensils, CalendarDays, FileText, MessageSquare
 } from 'lucide-react';
 
 // ─── Configuración de estados ───────────────────────────────────────────────
@@ -122,7 +122,8 @@ function StatusProgress({ status }) {
 
 // ─── Tarjeta de pedido individual ──────────────────────────────────────────
 
-function OrderCard({ order, locations = [] }) {
+function OrderCard({ order, locations = [], userCountry }) {
+  const { getCurrencyConfig } = useAuth();
   const [expanded, setExpanded] = useState(false);
   const cfg = STATUS_CONFIG[order.status] || STATUS_CONFIG.pending;
   const Icon = cfg.icon;
@@ -136,16 +137,26 @@ function OrderCard({ order, locations = [] }) {
     fetchPolicy: 'cache-first',
   });
 
+  const { data: invoiceData } = useQuery(GET_INVOICE, {
+    variables: { order_id: order.id },
+    skip: !expanded,
+    fetchPolicy: 'cache-first',
+  });
+
   const items = itemsData?.orderItems || [];
   const total = items.reduce((sum, i) => sum + parseFloat(i.subtotal || 0), 0);
+  const invoice = invoiceData?.orderInvoice;
 
   const isActive = !['delivered', 'cancelled'].includes(order.status);
 
   const formattedDate = order.created_at
-    ? new Date(order.created_at).toLocaleString('es-CO', {
-        day: '2-digit', month: 'short', year: 'numeric',
-        hour: '2-digit', minute: '2-digit',
-      })
+    ? (() => {
+        const cfg = getCurrencyConfig(userCountry);
+        return new Date(order.created_at).toLocaleString(cfg.locale, {
+          day: '2-digit', month: 'short', year: 'numeric',
+          hour: '2-digit', minute: '2-digit',
+        });
+      })()
     : '—';
 
   return (
@@ -205,6 +216,17 @@ function OrderCard({ order, locations = [] }) {
           )}
         </div>
 
+        {/* Indicaciones de entrega */}
+        {order.notes && (
+          <div className="mt-3 flex items-start gap-2 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+            <MessageSquare size={13} className="text-amber-500 mt-0.5 shrink-0" />
+            <p className="text-xs text-amber-800 font-medium leading-relaxed">
+              <span className="font-black uppercase tracking-wide text-amber-600">Indicaciones: </span>
+              {order.notes.replace(/^Indicaciones: /, '').split('. Pagado')[0].split('. Pago en efectivo')[0]}
+            </p>
+          </div>
+        )}
+
         {/* Expandir ítems */}
         <button
           onClick={() => setExpanded(v => !v)}
@@ -234,15 +256,74 @@ function OrderCard({ order, locations = [] }) {
                       <div className="text-xs text-slate-400 font-medium">x{item.quantity} unidades</div>
                     </div>
                     <div className="font-black text-slate-700 text-sm">
-                      ${parseFloat(item.subtotal || 0).toLocaleString('es-CO')}
+                        {(() => {
+                          const cfg = getCurrencyConfig(userCountry);
+                          return new Intl.NumberFormat(cfg.locale, {
+                            style: 'currency',
+                            currency: cfg.code,
+                            minimumFractionDigits: 0
+                          }).format(item.unit_price * item.quantity);
+                        })()}
                     </div>
                   </div>
                 ))}
                 <div className="flex justify-between items-center px-4 pt-2 border-t border-slate-200 mt-1">
                   <span className="text-xs font-black text-slate-500 uppercase tracking-wider">Total</span>
-                  <span className="font-black text-brand-600 text-base">${total.toLocaleString('es-CO')}</span>
+                  <span className="font-black text-brand-600 text-base">{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(total);
+                  })()}</span>
                 </div>
               </>
+            )}
+
+            {/* Factura */}
+            {invoice && (
+              <div className="mt-4 p-4 bg-blue-50/50 border border-blue-100 rounded-xl space-y-2">
+                <h4 className="text-xs font-black text-blue-800 uppercase flex items-center gap-2">
+                  <FileText size={14} /> Factura: {invoice.invoice_number}
+                </h4>
+                <div className="flex justify-between text-xs font-medium text-slate-600">
+                  <span>Subtotal:</span>
+                  <span>{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(invoice.subtotal);
+                  })()}</span>
+                </div>
+                <div className="flex justify-between text-xs font-medium text-slate-600">
+                  <span>Impuestos:</span>
+                  <span>{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(invoice.tax);
+                  })()}</span>
+                </div>
+                <div className="flex justify-between text-xs font-black text-slate-800 border-t border-blue-200 pt-1 mt-1">
+                  <span>Total Facturado:</span>
+                  <span className="text-blue-700">{(() => {
+                    const cfg = getCurrencyConfig(userCountry);
+                    return new Intl.NumberFormat(cfg.locale, {
+                      style: 'currency',
+                      currency: cfg.code,
+                      minimumFractionDigits: 0
+                    }).format(invoice.total);
+                  })()}</span>
+                </div>
+                <div className="mt-2 text-[10px] font-bold text-blue-500 uppercase">
+                  Estado: {invoice.status === "paid" ? "✅ Pagada" : "⏳ Pendiente"} | Medio: {invoice.payment_method || "N/A"}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -254,7 +335,7 @@ function OrderCard({ order, locations = [] }) {
 // ─── Página principal ───────────────────────────────────────────────────────
 
 const OrderHistory = () => {
-  const { user } = useAuth();
+  const { user, getCurrencyConfig } = useAuth();
 
   const { data, loading, error } = useQuery(GET_LIVE_ORDERS, {
     variables: { cid: user?.id },
@@ -329,7 +410,7 @@ const OrderHistory = () => {
             En curso ({activeOrders.length})
           </h2>
           {activeOrders.map((order) => (
-            <OrderCard key={order.id} order={order} locations={locations} />
+            <OrderCard key={order.id} order={order} locations={locations} userCountry={user?.country} />
           ))}
         </section>
       )}
@@ -341,7 +422,7 @@ const OrderHistory = () => {
             Historial ({pastOrders.length})
           </h2>
           {pastOrders.map((order) => (
-            <OrderCard key={order.id} order={order} locations={locations} />
+            <OrderCard key={order.id} order={order} locations={locations} userCountry={user?.country} />
           ))}
         </section>
       )}
