@@ -105,6 +105,14 @@ export const GET_DISHES = gql`
         price
         restaurant_id
       }
+      isAvailable(location_id: $location_id)
+      ingredients {
+        id
+        ingredient {
+          id
+          is_active
+        }
+      }
     }
   }
 `;

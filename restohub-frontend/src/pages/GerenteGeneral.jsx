@@ -374,8 +374,8 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
     name: "",
     address: "",
     countryId: "",
-    lat: null,
-    lng: null,
+    latitude: null,
+    longitude: null,
   });
   const [expandido, setExpandido] = useState(false);
   const [filtroPais, setFiltroPais] = useState("");
@@ -383,7 +383,7 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
   const [createLocation, { loading }] = useMutation(CREATE_LOCATION, {
     refetchQueries: [{ query: GET_LOCATIONS }],
     onCompleted: () => {
-      setForm({ name: "", address: "", countryId: "", lat: null, lng: null });
+      setForm({ name: "", address: "", countryId: "", latitude: null, longitude: null });
       setExpandido(false);
     },
     onError: (e) => alert("Error al crear sede: " + e.message),
@@ -499,8 +499,8 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
             <div style={{ width: "100%", marginTop: "0.5rem" }}>
               <label style={labelStyle}>Ubicación en el mapa Manualmente</label>
               <MapaPicker
-                lat={form.lat}
-                lng={form.lng}
+                lat={form.latitude}
+                lng={form.longitude}
                 countryName={
                   countries?.find((c) => String(c.id) === String(form.countryId))
                     ?.name
@@ -508,8 +508,8 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
                 onLocationChange={({ lat, lng, address }) => {
                   setForm((prev) => ({
                     ...prev,
-                    lat,
-                    lng,
+                    latitude: lat,
+                    longitude: lng,
                     // Actualizamos la dirección con la nueva provista por el mapa siempre
                     address: address || prev.address || "",
                   }));

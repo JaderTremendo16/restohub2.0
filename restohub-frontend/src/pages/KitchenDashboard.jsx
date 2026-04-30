@@ -12,7 +12,7 @@ import {
   ChefHat, Package, CheckCircle2, XCircle,
   Clock, AlertTriangle, BarChart2, LogOut,
   MapPin, Smartphone, Monitor, ClipboardList,
-  UtensilsCrossed, Trophy
+  UtensilsCrossed, Trophy, NotebookText
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 

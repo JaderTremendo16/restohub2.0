@@ -97,14 +97,14 @@ module.exports = {
 
     createLocation: async (
       _,
-      { name, address, countryId, timezone, lat, lng },
+      { name, address, countryId, timezone, latitude, longitude },
       { user },
     ) => {
       if (!user || user.role !== "general_manager") {
         throw new Error("Acceso denegado");
       }
       const [location] = await db("locations")
-        .insert({ name, address, country_id: countryId, timezone, lat, lng })
+        .insert({ name, address, country_id: countryId, timezone, latitude, longitude })
         .returning("*");
       return location;
     },

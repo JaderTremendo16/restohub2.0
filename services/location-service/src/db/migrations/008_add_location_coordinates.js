@@ -1,13 +1,13 @@
 exports.up = async function (knex) {
     await knex.schema.table('locations', function (t) {
-        t.float('lat').nullable();
-        t.float('lng').nullable();
+        t.float('latitude').nullable();
+        t.float('longitude').nullable();
     });
 };
 
 exports.down = async function (knex) {
     await knex.schema.table('locations', function (t) {
-        t.dropColumn('lat');
-        t.dropColumn('lng');
+        t.dropColumn('latitude');
+        t.dropColumn('longitude');
     });
 };

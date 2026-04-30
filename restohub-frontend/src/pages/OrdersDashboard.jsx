@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@apollo/client/react";
-import { PayPalButtons } from "@paypal/react-paypal-js";
 import { useAuth } from "../context/AuthContext";
 import { GET_DISHES } from "../graphql/menu";
 import {
@@ -19,12 +18,27 @@ import {
 } from "../graphql/orders";
 import { GET_LOCATIONS } from "../graphql/location";
 import {
-  Flame, Salad, Wine, Bike,
-  ClipboardList, RefreshCw, Store,
-  User, Smartphone, MapPin, FileText,
-  CheckCircle, CheckCircle2, XCircle,
-  Package, ChefHat, Truck,
-  ReceiptText, CreditCard, ListOrdered
+  Flame,
+  Salad,
+  Wine,
+  Bike,
+  ClipboardList,
+  RefreshCw,
+  Store,
+  User,
+  Smartphone,
+  MapPin,
+  FileText,
+  CheckCircle,
+  CheckCircle2,
+  XCircle,
+  Package,
+  ChefHat,
+  Truck,
+  ReceiptText,
+  CreditCard,
+  ListOrdered,
+  NotebookText,
 } from "lucide-react";
 
 // ───────────────── CONFIG ─────────────────
@@ -154,7 +168,10 @@ function CustomerName({ customerId }) {
     fetchPolicy: "cache-first",
   });
   const c = data?.customer;
-  if (!c) return <span style={{ opacity: 0.6 }}>{customerId?.slice(0, 8) || "—"}</span>;
+  if (!c)
+    return (
+      <span style={{ opacity: 0.6 }}>{customerId?.slice(0, 8) || "—"}</span>
+    );
   return <span style={{ fontWeight: 700 }}>{c.name}</span>;
 }
 
@@ -205,33 +222,58 @@ function ItemsModal({ order, onClose }) {
 function HistoryModal({ invoices, onClose, onShowInvoice }) {
   const [filter, setFilter] = useState("all");
 
-  const filtered = filter === "all" 
-    ? invoices 
-    : invoices.filter(inv => inv.status === filter);
+  const filtered =
+    filter === "all"
+      ? invoices
+      : invoices.filter((inv) => inv.status === filter);
 
   return (
     <Modal title="Historial de Facturas" onClose={onClose} width="800px">
       <div style={{ ...s.filters, marginBottom: "1.5rem" }}>
-        <button 
-          style={{ ...s.filterBtn, background: filter === "all" ? "#f4511e" : "#eee", color: filter === "all" ? "#fff" : "#333", padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
+        <button
+          style={{
+            ...s.filterBtn,
+            background: filter === "all" ? "#f4511e" : "#eee",
+            color: filter === "all" ? "#fff" : "#333",
+            padding: "0.4rem 0.8rem",
+            fontSize: "0.75rem",
+          }}
           onClick={() => setFilter("all")}
         >
           Todas
         </button>
-        <button 
-          style={{ ...s.filterBtn, background: filter === "paid" ? "#2ecc71" : "#eee", color: filter === "paid" ? "#fff" : "#333", padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
+        <button
+          style={{
+            ...s.filterBtn,
+            background: filter === "paid" ? "#2ecc71" : "#eee",
+            color: filter === "paid" ? "#fff" : "#333",
+            padding: "0.4rem 0.8rem",
+            fontSize: "0.75rem",
+          }}
           onClick={() => setFilter("paid")}
         >
           Pagadas
         </button>
-        <button 
-          style={{ ...s.filterBtn, background: filter === "pending" ? "#f39c12" : "#eee", color: filter === "pending" ? "#fff" : "#333", padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
+        <button
+          style={{
+            ...s.filterBtn,
+            background: filter === "pending" ? "#f39c12" : "#eee",
+            color: filter === "pending" ? "#fff" : "#333",
+            padding: "0.4rem 0.8rem",
+            fontSize: "0.75rem",
+          }}
           onClick={() => setFilter("pending")}
         >
           Pendientes
         </button>
-        <button 
-          style={{ ...s.filterBtn, background: filter === "cancelled" ? "#e74c3c" : "#eee", color: filter === "cancelled" ? "#fff" : "#333", padding: "0.4rem 0.8rem", fontSize: "0.75rem" }}
+        <button
+          style={{
+            ...s.filterBtn,
+            background: filter === "cancelled" ? "#e74c3c" : "#eee",
+            color: filter === "cancelled" ? "#fff" : "#333",
+            padding: "0.4rem 0.8rem",
+            fontSize: "0.75rem",
+          }}
           onClick={() => setFilter("cancelled")}
         >
           Anuladas
@@ -240,47 +282,105 @@ function HistoryModal({ invoices, onClose, onShowInvoice }) {
 
       <div style={{ maxHeight: "400px", overflowY: "auto" }}>
         {filtered.length === 0 ? (
-          <p style={{ textAlign: "center", color: "#999", padding: "2rem" }}>No hay facturas en esta categoría.</p>
+          <p style={{ textAlign: "center", color: "#999", padding: "2rem" }}>
+            No hay facturas en esta categoría.
+          </p>
         ) : (
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
-              <tr style={{ borderBottom: "1px solid #eee", fontSize: "0.8rem", color: "#888" }}>
-                <th style={{ textAlign: "left", padding: "0.5rem" }}>Factura</th>
-                <th style={{ textAlign: "left", padding: "0.5rem" }}>Cliente</th>
-                <th style={{ textAlign: "left", padding: "0.5rem" }}>Fecha / Hora</th>
+              <tr
+                style={{
+                  borderBottom: "1px solid #eee",
+                  fontSize: "0.8rem",
+                  color: "#888",
+                }}
+              >
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>
+                  Factura
+                </th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>
+                  Cliente
+                </th>
+                <th style={{ textAlign: "left", padding: "0.5rem" }}>
+                  Fecha / Hora
+                </th>
                 <th style={{ textAlign: "right", padding: "0.5rem" }}>Total</th>
-                <th style={{ textAlign: "center", padding: "0.5rem" }}>Estado</th>
-                <th style={{ textAlign: "center", padding: "0.5rem" }}>Acción</th>
+                <th style={{ textAlign: "center", padding: "0.5rem" }}>
+                  Estado
+                </th>
+                <th style={{ textAlign: "center", padding: "0.5rem" }}>
+                  Acción
+                </th>
               </tr>
             </thead>
             <tbody>
-              {filtered.map(inv => (
-                <tr key={inv.id} style={{ borderBottom: "1px solid #f9f9f9", fontSize: "0.85rem" }}>
-                  <td style={{ padding: "0.7rem 0.5rem", fontWeight: 700 }}>{inv.invoice_number?.replace("FAC-","")}</td>
-                  <td style={{ padding: "0.7rem 0.5rem" }}>{inv.customer_name}</td>
-                  <td style={{ padding: "0.7rem 0.5rem", fontSize: "0.75rem", color: "#666" }}>
-                    {new Date(inv.created_at).toLocaleString('es-CO', { 
-                      day: '2-digit', month: '2-digit', year: '2-digit',
-                      hour: '2-digit', minute: '2-digit' 
+              {filtered.map((inv) => (
+                <tr
+                  key={inv.id}
+                  style={{
+                    borderBottom: "1px solid #f9f9f9",
+                    fontSize: "0.85rem",
+                  }}
+                >
+                  <td style={{ padding: "0.7rem 0.5rem", fontWeight: 700 }}>
+                    {inv.invoice_number?.replace("FAC-", "")}
+                  </td>
+                  <td style={{ padding: "0.7rem 0.5rem" }}>
+                    {inv.customer_name}
+                  </td>
+                  <td
+                    style={{
+                      padding: "0.7rem 0.5rem",
+                      fontSize: "0.75rem",
+                      color: "#666",
+                    }}
+                  >
+                    {new Date(inv.created_at).toLocaleString("es-CO", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
                     })}
                   </td>
-                  <td style={{ padding: "0.7rem 0.5rem", textAlign: "right", fontWeight: 700 }}>{money(inv.total)}</td>
+                  <td
+                    style={{
+                      padding: "0.7rem 0.5rem",
+                      textAlign: "right",
+                      fontWeight: 700,
+                    }}
+                  >
+                    {money(inv.total)}
+                  </td>
                   <td style={{ padding: "0.7rem 0.5rem", textAlign: "center" }}>
-                    <span style={{ 
-                      padding: "2px 6px", 
-                      borderRadius: "4px", 
-                      fontSize: "0.7rem", 
-                      background: inv.status === "paid" ? "#e8f5e9" : 
-                                 inv.status === "cancelled" ? "#ffebee" : "#fff3e0",
-                      color: inv.status === "paid" ? "#2e7d32" : 
-                             inv.status === "cancelled" ? "#c62828" : "#ef6c00"
-                    }}>
-                      {inv.status === "paid" ? "PAGADA" : 
-                       inv.status === "cancelled" ? "ANULADA" : "PENDIENTE"}
+                    <span
+                      style={{
+                        padding: "2px 6px",
+                        borderRadius: "4px",
+                        fontSize: "0.7rem",
+                        background:
+                          inv.status === "paid"
+                            ? "#e8f5e9"
+                            : inv.status === "cancelled"
+                              ? "#ffebee"
+                              : "#fff3e0",
+                        color:
+                          inv.status === "paid"
+                            ? "#2e7d32"
+                            : inv.status === "cancelled"
+                              ? "#c62828"
+                              : "#ef6c00",
+                      }}
+                    >
+                      {inv.status === "paid"
+                        ? "PAGADA"
+                        : inv.status === "cancelled"
+                          ? "ANULADA"
+                          : "PENDIENTE"}
                     </span>
                   </td>
                   <td style={{ padding: "0.7rem 0.5rem", textAlign: "center" }}>
-                    <button 
+                    <button
                       style={{ ...s.btnSm, padding: "2px 8px" }}
                       onClick={() => onShowInvoice(inv)}
                     >
@@ -294,7 +394,9 @@ function HistoryModal({ invoices, onClose, onShowInvoice }) {
         )}
       </div>
       <div style={{ ...s.modalBtns, marginTop: "1rem" }}>
-        <button style={s.btnPrimary} onClick={onClose}>Cerrar</button>
+        <button style={s.btnPrimary} onClick={onClose}>
+          Cerrar
+        </button>
       </div>
     </Modal>
   );
@@ -706,11 +808,12 @@ function InvoiceModal({ order, onClose, showMsg }) {
                 <div>
                   <span style={s.muted}>MEDIO DE PAGO: </span>
                   <span style={{ fontWeight: "700", color: "#1976d2" }}>
-                    {invoiceData.payment_method === "paypal" || order.channel === "web"
-                      ? "💳 PayPal"
-                      : invoiceData.payment_method === "canje_puntos"
+                    {invoiceData.payment_method === "reward"
                       ? "🎁 Canje de Puntos"
-                      : "💵 Efectivo"}
+                      : invoiceData.payment_method === "paypal" ||
+                          order.channel === "web"
+                        ? "💳 PayPal"
+                        : "💵 Efectivo"}
                   </span>
                 </div>
                 <div
@@ -914,8 +1017,6 @@ function OrderCard({
   locations,
 }) {
   const nextSteps = ORDER_ALLOWED_TRANSITIONS[order.status] || [];
-  const canInvoice = ["ready", "delivered"].includes(order.status);
-  const canPay = order.status === "ready";
 
   return (
     <div
@@ -933,6 +1034,18 @@ function OrderCard({
       <div style={s.cardHeader}>
         <span style={s.orderId}>#{shortId(order.id)}</span>
         <div style={{ display: "flex", gap: "0.4rem" }}>
+          {order.notes?.toLowerCase().includes("paypal") && (
+            <span
+              style={{
+                ...s.badge,
+                background: "#2ecc71",
+                color: "#fff",
+                boxShadow: "0 0 10px rgba(46, 204, 113, 0.3)",
+              }}
+            >
+              💰 PAGADO
+            </span>
+          )}
           <span
             style={{
               ...s.badge,
@@ -955,12 +1068,39 @@ function OrderCard({
       </div>
 
       <p style={s.info}>
-        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><Store size={13} /></span> <LocationName locationId={order.restaurant_id} locations={locations} /> ·{" "}
-        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><User size={13} /></span> <CustomerName customerId={order.customer_id} />
+        <span
+          style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}
+        >
+          <Store size={13} />
+        </span>{" "}
+        <LocationName locationId={order.restaurant_id} locations={locations} />{" "}
+        ·{" "}
+        <span
+          style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}
+        >
+          <User size={13} />
+        </span>{" "}
+        <CustomerName customerId={order.customer_id} />
       </p>
       <p style={s.info}>
-        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><Smartphone size={13} /></span> {order.channel} ·{" "}
-        <span style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}><MapPin size={13} /></span> {AREA_LABELS[order.area] ? <>{AREA_ICONS[order.area]} {AREA_LABELS[order.area]}</> : order.area || "—"}
+        <span
+          style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}
+        >
+          <Smartphone size={13} />
+        </span>{" "}
+        {order.channel} ·{" "}
+        <span
+          style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}
+        >
+          <MapPin size={13} />
+        </span>{" "}
+        {AREA_LABELS[order.area] ? (
+          <>
+            {AREA_ICONS[order.area]} {AREA_LABELS[order.area]}
+          </>
+        ) : (
+          order.area || "—"
+        )}
       </p>
       {order.notes && <p style={s.info}>📝 {order.notes}</p>}
       <LiveTimer order={order} />
@@ -970,33 +1110,66 @@ function OrderCard({
           <div style={s.actionRow}>
             {order.status === "pending" && (
               <button
-                style={{ ...s.btnSm, background: "#e8f5e9", color: "#2e7d32", border: "1px solid #a5d6a7", fontWeight: 700 }}
+                style={{
+                  ...s.btnSm,
+                  background: "#e8f5e9",
+                  color: "#2e7d32",
+                  border: "1px solid #a5d6a7",
+                  fontWeight: 700,
+                }}
                 onClick={() => onStatusChange(order.id, "validated")}
               >
-                ✅ Confirmar pedido
+                👨‍🍳 Enviar a Cocina
               </button>
             )}
 
-            {canInvoice && (
+            {order.status === "ready" && (
+              <button
+                style={{
+                  ...s.btnSm,
+                  background: "#e3f2fd",
+                  color: "#1976d2",
+                  border: "1px solid #bbdefb",
+                  fontWeight: 700,
+                }}
+                onClick={() => onStatusChange(order.id, "delivered")}
+              >
+                🚚 Enviar al cliente a su dirección
+              </button>
+            )}
+
+            {(order.status === "ready" || order.status === "delivered") && (
               <button
                 style={s.btnSm}
                 onClick={() => onOpenModal("invoice", order)}
               >
-                <ReceiptText size={13} style={{ verticalAlign: 'middle', marginRight: '3px' }} /> Factura
+                <ReceiptText
+                  size={13}
+                  style={{ verticalAlign: "middle", marginRight: "3px" }}
+                />{" "}
+                Factura
               </button>
             )}
 
-            {canPay && (
+            {order.status === "ready" && (
               <button
                 style={s.btnSm}
                 onClick={() => onOpenModal("payment", order)}
               >
-                <CreditCard size={13} style={{ verticalAlign: 'middle', marginRight: '3px' }} /> Pago
+                <CreditCard
+                  size={13}
+                  style={{ verticalAlign: "middle", marginRight: "3px" }}
+                />{" "}
+                Pago
               </button>
             )}
 
             <button style={s.btnSm} onClick={() => onOpenModal("items", order)}>
-              <ListOrdered size={13} style={{ verticalAlign: 'middle', marginRight: '3px' }} /> Ver ítems
+              <ListOrdered
+                size={13}
+                style={{ verticalAlign: "middle", marginRight: "3px" }}
+              />{" "}
+              Ver ítems
             </button>
           </div>
 
@@ -1232,7 +1405,8 @@ export default function OrdersDashboard() {
         <div>
           <h1 style={s.title}>Dashboard de Órdenes</h1>
           <span style={s.subtitle}>
-            {orders.length} pedidos · {filtered.length} visibles · Sede: {myLocationName}
+            Viendo {filtered.length} pedidos de {orders.length} totales en{" "}
+            {myLocationName}
           </span>
         </div>
 
@@ -1447,13 +1621,15 @@ export default function OrdersDashboard() {
       )}
 
       {modal?.type === "history" && (
-        <HistoryModal 
-          invoices={paidInvoices} 
-          onClose={() => setModal(null)} 
-          onShowInvoice={(inv) => setModal({ 
-            type: "invoice", 
-            order: { id: inv.order_id, customer_id: null } 
-          })}
+        <HistoryModal
+          invoices={paidInvoices}
+          onClose={() => setModal(null)}
+          onShowInvoice={(inv) =>
+            setModal({
+              type: "invoice",
+              order: { id: inv.order_id, customer_id: null },
+            })
+          }
         />
       )}
 

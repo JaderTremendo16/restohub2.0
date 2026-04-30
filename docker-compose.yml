@@ -17,6 +17,7 @@ volumes:
   pos_db_data:
   rh2_customer_db_data:
   rh2_loyalty_db_data:
+  redis_data:
 
 
 services:
@@ -380,6 +381,17 @@ services:
       timeout: 5s
       retries: 10
 
+  # Redis: Para la gestión del carrito de compras persistente
+  redis:
+    image: redis:alpine
+    container_name: restohub-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - restohub-network
+
   # ── Microservices ──────────────────────────────────────────────────────────
   customer-service:
     build:
@@ -389,6 +401,7 @@ services:
     environment:
       DATABASE_URL: postgresql://customer_user:customer_pass@db_customer:5432/customer_db
       RABBITMQ_URL: amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@rabbitmq:5672/
+      REDIS_URL: redis://redis:6379/0
       SECRET_KEY: "restohub_secret_key_v2_2024"
     volumes:
       - ./services/customer-service:/app
@@ -402,6 +415,8 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   loyalty-service:
     build:
