@@ -363,6 +363,7 @@ const resolvers = {
   Dish: {
     isAvailable: async (parent, { location_id }) => {
       try {
+        if (!location_id) return true; // Si no hay sede específica, no filtramos por stock
         const menuUrl = process.env.MENU_SERVICE_URL || "http://menu-service:4002/graphql";
         const query = `
           query GetDishIngredients($dish_id: ID!) {

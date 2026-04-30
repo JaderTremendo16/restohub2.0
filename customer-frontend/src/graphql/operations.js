@@ -101,6 +101,12 @@ export const GET_DISHES = gql`
       category
       image_url
       is_active
+      ingredients {
+        id
+        ingredient {
+          id
+        }
+      }
       prices {
         price
         restaurant_id
@@ -363,8 +369,19 @@ export const GET_LOCATIONS = gql`
       name
       address
       countryId
-      latitude
-      longitude
+      lat
+      lng
+    }
+  }
+`;
+
+export const GET_INGREDIENTS = gql`
+  query GetIngredients($onlyActive: Boolean, $location_id: Int, $strict: Boolean) {
+    ingredients(onlyActive: $onlyActive, location_id: $location_id, strict: $strict) {
+      id
+      name
+      is_active
+      location_id
     }
   }
 `;

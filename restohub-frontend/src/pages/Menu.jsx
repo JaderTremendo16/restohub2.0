@@ -16,6 +16,7 @@ import {
 } from "../graphql/menu";
 import { GET_INGREDIENTS } from "../graphql/ingredients";
 import { GET_LOCATIONS, GET_COUNTRIES } from "../graphql/location";
+import { AlertCircle } from "lucide-react";
 
 const CATEGORIAS = ["entrada", "sopa", "principal", "postre", "bebida"];
 
@@ -389,6 +390,7 @@ function DishCard({
   locationId,
   canToggleStatus = false,
   country,
+  ingData,
 }) {
   const colores = CATEGORIA_COLORES[dish.category] ?? {
     bg: "#f3f4f6",
@@ -405,7 +407,11 @@ function DishCard({
         display: "flex",
         flexDirection: "column",
         gap: "1rem",
-        opacity: dish.is_active ? 1 : 0.7,
+        opacity: (!dish.is_active || dish.ingredients?.some(di => {
+          const localIng = ingData?.ingredients?.find(i => String(i.id) === String(di.ingredient?.id));
+          if (localIng) return !localIng.is_active;
+          return di.ingredient && !di.ingredient.is_active;
+        })) ? 0.7 : 1,
         border: "1px solid #f1f5f9",
         transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
         cursor: "default",
@@ -446,18 +452,49 @@ function DishCard({
         </span>
 
         {/* Badge de disponibilidad */}
-        <span
-          style={{
-            backgroundColor: dish.is_active ? "#dcfce7" : "#f3f4f6",
-            color: dish.is_active ? "#16a34a" : "#9ca3af",
-            padding: "0.2rem 0.7rem",
-            borderRadius: "9999px",
-            fontSize: "0.72rem",
-            fontWeight: "600",
-          }}
-        >
-          {dish.is_active ? "Disponible" : "No disponible"}
-        </span>
+        {(() => {
+          const hasInactiveIngredient = dish.ingredients?.some(di => {
+            const localIng = ingData?.ingredients?.find(i => String(i.id) === String(di.ingredient?.id));
+            if (localIng) return !localIng.is_active;
+            return di.ingredient && !di.ingredient.is_active;
+          });
+          const isUnavailable = !dish.is_active || hasInactiveIngredient;
+
+          if (isUnavailable) {
+             return (
+               <span
+                style={{
+                  backgroundColor: "#fef2f2",
+                  color: "#dc2626",
+                  padding: "0.2rem 0.7rem",
+                  borderRadius: "9999px",
+                  fontSize: "0.72rem",
+                  fontWeight: "600",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.25rem",
+                }}
+              >
+                <AlertCircle size={14} /> NO DISPONIBLE
+              </span>
+             );
+          }
+
+          return (
+            <span
+              style={{
+                backgroundColor: "#dcfce7",
+                color: "#16a34a",
+                padding: "0.2rem 0.7rem",
+                borderRadius: "9999px",
+                fontSize: "0.72rem",
+                fontWeight: "600",
+              }}
+            >
+              Disponible
+            </span>
+          );
+        })()}
       </div>
 
       {/* Imagen del plato */}
@@ -644,7 +681,7 @@ function DishCard({
   );
 }
 
-function PanelCostos({ dish, locationId, country, onClose }) {
+function PanelCostos({ dish, locationId, country, ingData, onClose }) {
   const [margen, setMargen] = useState(30);
   const [costos, setCostos] = useState({});
   const [editando, setEditando] = useState(false);
@@ -671,13 +708,9 @@ function PanelCostos({ dish, locationId, country, onClose }) {
     (c) => String(c.id) === String(sedeActual?.countryId),
   );
 
-  const { data: dataTodosIngredientes, loading: l3 } = useQuery(GET_INGREDIENTS, {
-    variables: { 
-      location_id: locationId,
-      country_id: paisActual?.id ? parseInt(paisActual.id) : undefined
-    },
-    skip: !locationId,
-  });
+  // Se elimina la query duplicada de GET_INGREDIENTS aquí porque 
+  // en la vista principal ya estamos pidiendo ingData (network-only)
+  // que usaremos para alimentar el catálogo de ingredientes.
 
   const { data: dataCostosSede, loading: l4 } = useQuery(GET_INGREDIENT_COSTS, {
     variables: { 
@@ -687,12 +720,12 @@ function PanelCostos({ dish, locationId, country, onClose }) {
     skip: !locationId,
   });
 
-  const ingredientesCatalogo = dataTodosIngredientes?.ingredients || [];
+  const ingredientesCatalogo = ingData?.ingredients || [];
 
   useEffect(() => {
-    if (!initialized && !l1 && !l3 && !l4) {
+    if (!initialized && !l1 && !l4) {
       const inicial = {};
-      const catalog = dataTodosIngredientes?.ingredients || [];
+      const catalog = ingData?.ingredients || [];
       const dishIngs = dataIngredientes?.DishIngredients || [];
       const sedeCosts = dataCostosSede?.ingredientCosts || [];
 
@@ -719,7 +752,7 @@ function PanelCostos({ dish, locationId, country, onClose }) {
       setCostos(inicial);
       setInitialized(true);
     }
-  }, [initialized, l1, l3, l4, dataIngredientes, dataTodosIngredientes, dataCostosSede]);
+  }, [initialized, l1, ingData, l4, dataIngredientes, dataCostosSede]);
 
   const { data: dataPrecio, refetch: refetchPrecio } = useQuery(
     GET_MENU_PRICES,
@@ -869,9 +902,9 @@ function PanelCostos({ dish, locationId, country, onClose }) {
         }}
       >
         {/* Alerta de disponibilidad */}
-        {(dish.is_active === false || dataIngredientes?.DishIngredients?.some(ing => {
+        {(!dish.is_active || dataIngredientes?.DishIngredients?.some(ing => {
           const catalogIng = ingredientesCatalogo.find(c => String(c.id) === String(ing.ingredient_id));
-          return catalogIng && catalogIng.is_active === false;
+          return catalogIng && !catalogIng.is_active;
         })) && (
           <div style={{ 
             backgroundColor: "#fff7ed", 
@@ -889,7 +922,7 @@ function PanelCostos({ dish, locationId, country, onClose }) {
                 PLATO NO DISPONIBLE
               </p>
               <p style={{ margin: 0, color: "#c2410c", fontSize: "0.78rem", lineHeight: "1.3" }}>
-                {dish.is_active === false 
+                {!dish.is_active 
                   ? "El plato está desactivado." 
                   : "Tiene uno o más ingredientes INACTIVOS."}
               </p>
@@ -1074,7 +1107,7 @@ function PanelCostos({ dish, locationId, country, onClose }) {
             >
               {ingredientes.map((ing) => {
                 const pricePerBase = parseFloat(costos[ing.ingredient_id] || 0);
-                const catIng = dataTodosIngredientes?.ingredients?.find(i => String(i.id) === String(ing.ingredient_id));
+                const catIng = ingData?.ingredients?.find(i => String(i.id) === String(ing.ingredient_id));
                 const subtotal = (catIng && !catIng.is_active) ? 0 : calculateIngredientCost(ing.quantity, ing.unit, catIng?.unit, pricePerBase);
                 
                 return (
@@ -1096,14 +1129,10 @@ function PanelCostos({ dish, locationId, country, onClose }) {
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          {dataTodosIngredientes?.ingredients?.find(
+                          {ingData?.ingredients?.find(
                             (i) => String(i.id) === String(ing.ingredient_id),
                           )?.name || "Ingrediente"}
                           {(() => {
-                            const catIng = dataTodosIngredientes?.ingredients?.find(
-                              (i) => String(i.id) === String(ing.ingredient_id)
-                            );
-                          
                             if (catIng && !catIng.is_active) {
                               return (
                                 <span style={{
@@ -1296,6 +1325,13 @@ function Menu() {
   const { data, loading, error } = useQuery(GET_DISHES, {
     variables: { location_id: locationId },
     fetchPolicy: "network-only",
+  });
+
+  // Fetch ingredients directly to bypass the Federation ghost cache issue
+  const { data: ingData } = useQuery(GET_INGREDIENTS, {
+    variables: { location_id: locationId },
+    fetchPolicy: "network-only",
+    skip: !locationId,
   });
 
   const [activateDish] = useMutation(ACTIVATE_DISH, {
@@ -1503,6 +1539,7 @@ function Menu() {
                 <DishCard
                   key={dish.id}
                   dish={dish}
+                  ingData={ingData}
                   onEdit={handleEdit}
                   onDeactivate={handleDeactivate}
                   onActivate={handleActivate}
@@ -1533,6 +1570,7 @@ function Menu() {
           dish={dishCostos}
           locationId={locationId}
           country={paisActual}
+          ingData={ingData}
           onClose={() => setDishCostos(null)}
         />
       )}

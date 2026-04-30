@@ -14,7 +14,6 @@ export const GET_DISHES = gql`
         id
         ingredient {
           id
-          is_active
         }
       }
       prices {

@@ -241,6 +241,7 @@ function Ingredients() {
   const { data, loading, error } = useQuery(GET_INGREDIENTS, {
     variables: { location_id: locationId },
     skip: !locationId,
+    fetchPolicy: 'network-only',
   });
 
   // Proveedores
@@ -257,6 +258,7 @@ function Ingredients() {
     refetchQueries: [
       { query: GET_INGREDIENTS, variables: { location_id: locationId } },
     ],
+    awaitRefetchQueries: true,
     onCompleted: () => alert("Ingrediente desactivado"),
     onError: (e) => alert("Error al desactivar ingrediente: " + e.message),
   });
@@ -281,6 +283,7 @@ function Ingredients() {
     refetchQueries: [
       { query: GET_INGREDIENTS, variables: { location_id: locationId } },
     ],
+    awaitRefetchQueries: true,
     onCompleted: () => alert("Ingrediente activado"),
     onError: (e) => alert("Error al activar ingrediente: " + e.message),
   });

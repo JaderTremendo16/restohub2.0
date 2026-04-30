@@ -510,8 +510,8 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
                     ...prev,
                     lat,
                     lng,
-                    // Si el mapa devuelve una dirección y el campo estaba vacío, lo auto-rellenamos
-                    address: prev.address || address || "",
+                    // Actualizamos la dirección con la nueva provista por el mapa siempre
+                    address: address || prev.address || "",
                   }));
                 }}
               />

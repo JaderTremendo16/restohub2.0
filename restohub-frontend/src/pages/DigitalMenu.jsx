@@ -72,8 +72,9 @@ const DigitalMenu = () => {
     const matchesCategory = selectedCategory === 'Todos' || dish.category === selectedCategory;
     
     // --- Nueva lógica de disponibilidad con Stock ---
-    const hasInactiveIngredients = dish.ingredients?.some(ing => ing.ingredient && ing.ingredient.is_active === false);
-    const isAvailable = dish.is_active !== false && !hasInactiveIngredients && dish.isAvailable !== false;
+    const hasInactiveIngredients = dish.ingredients?.some(ing => ing.ingredient && !ing.ingredient.is_active);
+    const hasValidPrice = getDishPrice(dish) > 0;
+    const isAvailable = dish.is_active && !hasInactiveIngredients && dish.isAvailable !== false && hasValidPrice;
     
     return matchesSearch && matchesCategory && isAvailable;
   });

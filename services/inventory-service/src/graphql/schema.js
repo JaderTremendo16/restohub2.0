@@ -102,7 +102,7 @@ const typeDefs = gql`
 
   extend type Dish @key(fields: "id") {
     id: ID! @external
-    isAvailable(location_id: ID!): Boolean
+    isAvailable(location_id: Int): Boolean
   }
 
   type Query {

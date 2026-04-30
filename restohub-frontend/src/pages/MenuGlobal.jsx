@@ -755,6 +755,35 @@ function PanelDetalle({
           </button>
         </div>
 
+        {/* Alerta de disponibilidad */}
+        {(!dish.is_active || ingData?.DishIngredients?.some(ing => {
+          const catalogIng = ingredients?.find(c => String(c.id) === String(ing.ingredient_id));
+          return catalogIng && !catalogIng.is_active;
+        })) && (
+          <div style={{ 
+            backgroundColor: "#fff7ed", 
+            border: "1px solid #ffedd5", 
+            borderRadius: "0.75rem", 
+            padding: "1rem", 
+            marginBottom: "1.25rem",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem"
+          }}>
+            <span style={{ fontSize: "1.2rem" }}>⚠️</span>
+            <div>
+              <p style={{ margin: 0, fontWeight: "700", color: "#9a3412", fontSize: "0.85rem" }}>
+                PLATO NO DISPONIBLE
+              </p>
+              <p style={{ margin: 0, color: "#c2410c", fontSize: "0.78rem", lineHeight: "1.3" }}>
+                {!dish.is_active 
+                  ? "El plato está desactivado." 
+                  : "Tiene uno o más ingredientes INACTIVOS."}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* --- Costeo Automático --- */}
         <div
           style={{
@@ -1142,7 +1171,27 @@ function PanelDetalle({
                     color: "#374151",
                   }}
                 >
-                  <span>{nombreIngrediente(String(ing.ingredient_id))}</span>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                    <span>{nombreIngrediente(String(ing.ingredient_id))}</span>
+                    {(() => {
+                      const catIng = ingredients?.find(i => String(i.id) === String(ing.ingredient_id));
+                      if (catIng && !catIng.is_active) {
+                        return (
+                          <span style={{
+                            fontSize: "0.6rem",
+                            backgroundColor: "#fee2e2",
+                            color: "#dc2626",
+                            padding: "0.1rem 0.4rem",
+                            borderRadius: "0.4rem",
+                            fontWeight: "700"
+                          }}>
+                            INACTIVO
+                          </span>
+                        );
+                      }
+                      return null;
+                    })()}
+                  </div>
                   {isGerenteGeneral && editIngId === ing.id ? (
                     <div
                       style={{

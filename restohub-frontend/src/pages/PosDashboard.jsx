@@ -3,6 +3,7 @@ import { PayPalButtons } from "@paypal/react-paypal-js";
 import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { GET_DISHES } from "../graphql/menu";
+import { GET_INGREDIENTS } from "../graphql/ingredients";
 import {
   GET_POS_ORDERS,
   CREATE_POS_ORDER,
@@ -94,6 +95,7 @@ export default function PosDashboard() {
   const { data: dishesData } = useQuery(GET_DISHES, {
     variables: { location_id: parseInt(restaurantId) },
     skip: !restaurantId || isNaN(parseInt(restaurantId)),
+    pollInterval: 5000,
   });
 
   const [createOrder] = useMutation(CREATE_POS_ORDER);
@@ -115,6 +117,14 @@ export default function PosDashboard() {
   const paisActual = countriesData?.countries?.find(
     (c) => String(c.id) === String(sedeActual?.countryId)
   );
+
+  // Fetch ingredients directly to bypass the Federation ghost cache issue
+  const { data: ingData } = useQuery(GET_INGREDIENTS, {
+    variables: { location_id: restaurantId ? parseInt(restaurantId) : null },
+    fetchPolicy: "network-only",
+    skip: !restaurantId,
+    pollInterval: 5000,
+  });
 
   const formatCurrency = (val) => {
     const locale = paisActual?.locale || "es-CO";
@@ -220,7 +230,22 @@ export default function PosDashboard() {
   };
 
   const handleAddItem = async () => {
-    if (!selectedOrder) return;
+    if (!selectedOrder || !newItem.product_id) return;
+    
+    // Validar disponibilidad antes de agregar
+    const dish = dishesData?.dishes?.find(d => String(d.id) === String(newItem.product_id));
+    if (dish) {
+      const hasInactive = dish.ingredients?.some(ing => {
+        const localIng = ingData?.ingredients?.find(i => String(i.id) === String(ing.ingredient?.id));
+        if (localIng) return !localIng.is_active;
+        return ing.ingredient && !ing.ingredient.is_active;
+      });
+      if (!dish.is_active || hasInactive || dish.isAvailable === false) {
+        showMsg("Este plato no está disponible actualmente", "error");
+        return;
+      }
+    }
+    
     try {
       await addItem({
         variables: {
@@ -1070,13 +1095,23 @@ export default function PosDashboard() {
                 const pObj = d.prices?.find(p => String(p.restaurant_id) === String(restaurantId));
                 const pVal = pObj ? pObj.price : 0;
                 
-                // --- Nueva lógica de disponibilidad con Stock ---
-                const hasInactiveIngredients = d.ingredients?.some(ing => ing.ingredient && ing.ingredient.is_active === false);
-                const isUnavailable = d.is_active === false || hasInactiveIngredients || d.isAvailable === false;
+                // --- Nueva lógica de disponibilidad con Stock y Precio ---
+                const hasInactiveIngredients = d.ingredients?.some(ing => {
+                  const localIng = ingData?.ingredients?.find(i => String(i.id) === String(ing.ingredient?.id));
+                  if (localIng) return !localIng.is_active;
+                  return ing.ingredient && !ing.ingredient.is_active;
+                });
+                const isUnavailable = !d.is_active || hasInactiveIngredients || d.isAvailable === false;
+                const noPrice = parseFloat(pVal) <= 0;
+                const isDisabled = isUnavailable || noPrice;
                 
+                let labelExtra = `— $${parseFloat(pVal).toFixed(2)}`;
+                if (isUnavailable) labelExtra = "— (AGOTADO)";
+                else if (noPrice) labelExtra = "— (PRECIO NO CONFIGURADO)";
+
                 return (
-                  <option key={d.id} value={d.id} disabled={isUnavailable}>
-                    {d.name} {isUnavailable ? "— (AGOTADO)" : `— $${parseFloat(pVal).toFixed(2)}`}
+                  <option key={d.id} value={d.id} disabled={isDisabled}>
+                    {d.name} {labelExtra}
                   </option>
                 );
               })}

@@ -28,6 +28,9 @@ class UserType:
     preferences: Optional[str]
     country: str
     city: Optional[str]
+    address: Optional[str]
+    latitude: Optional[float]
+    longitude: Optional[float]
     branch: Optional[str]
     created_at: str
 
@@ -82,6 +85,9 @@ def _map_user(u: User) -> UserType:
         preferences=u.preferences,
         country=u.country,
         city=u.city,
+        address=u.address,
+        latitude=u.latitude,
+        longitude=u.longitude,
         branch=u.branch,
         created_at=u.created_at.isoformat(),
     )
@@ -195,6 +201,9 @@ class Mutation:
         preferences: Optional[str] = None,
         country: Optional[str] = None,
         city: Optional[str] = None,
+        address: Optional[str] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
         branch: Optional[str] = None,
     ) -> UserType:
         """Registra un nuevo cliente en el sistema."""
@@ -210,6 +219,9 @@ class Mutation:
             preferences=preferences,
             country=country or "Colombia",
             city=city,
+            address=address,
+            latitude=latitude,
+            longitude=longitude,
             branch=branch,
         )
         db.add(user)
@@ -311,6 +323,9 @@ class Mutation:
         phone: Optional[str] = None,
         country: Optional[str] = None,
         city: Optional[str] = None,
+        address: Optional[str] = None,
+        latitude: Optional[float] = None,
+        longitude: Optional[float] = None,
         branch: Optional[str] = None,
     ) -> UserType:
         """Actualiza los datos del perfil del cliente."""
@@ -324,6 +339,9 @@ class Mutation:
         user.phone = phone
         if country: user.country = country
         if city: user.city = city
+        if address: user.address = address
+        if latitude: user.latitude = latitude
+        if longitude: user.longitude = longitude
         if branch: user.branch = branch
         db.commit()
         db.refresh(user)
