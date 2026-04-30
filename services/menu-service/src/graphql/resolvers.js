@@ -11,7 +11,11 @@ const resolvers = {
   Query: {
     dishes: async (_, { OnlyActive, location_id, onlyGlobal }) => {
       const query = database("dishes");
-      if (OnlyActive) query.where({ "dishes.is_active": true });
+      
+      // Filtro global básico
+      if (OnlyActive) {
+        query.where({ "dishes.is_active": true });
+      }
       
       if (onlyGlobal) {
         query.whereNull("dishes.location_id");
@@ -32,11 +36,21 @@ const resolvers = {
         }
       }).select("dishes.*", "dls.is_active as local_is_active");
 
-      const results = await query;
-      return results.map(dish => ({
+      let results = await query;
+
+      // Mapeo final del estado de actividad
+      results = results.map(dish => ({
         ...dish,
         is_active: dish.local_is_active !== null ? dish.local_is_active : dish.is_active
       }));
+
+      // Si OnlyActive está activado, filtramos de nuevo post-mapeo para asegurar que
+      // las desactivaciones locales sean respetadas.
+      if (OnlyActive) {
+        return results.filter(dish => dish.is_active === true);
+      }
+
+      return results;
     },
 
     dish: async (_, { id }) => {

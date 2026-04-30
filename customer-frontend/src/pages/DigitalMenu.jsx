@@ -33,11 +33,19 @@ const DigitalMenu = () => {
   const [selectedDishForRating, setSelectedDishForRating] = useState(null);
   const [orderStatus, setOrderStatus] = useState({ show: false, text: "" });
 
+  const { data: locData } = useQuery(GET_LOCATIONS);
+  const locations = locData?.locations || [];
+
+  // Encontrar el ID numérico de la sede actual del usuario basado en su nombre
+  const currentLocation = locations.find(loc => 
+    loc.name?.trim().toLowerCase() === user?.branch?.trim().toLowerCase()
+  );
+  const currentLocationId = currentLocation ? parseInt(currentLocation.id) : null;
+
   // Usamos OnlyActive para ver platos disponibles.
-  // Se omite location_id porque el cliente usa nombres de sede (String)
-  // que no mapean directamente a los IDs numéricos del menu-service.
+  // Ahora pasamos location_id para que el backend filtre desactivaciones locales.
   const { data, loading, error, refetch } = useQuery(GET_DISHES, {
-    variables: { OnlyActive: true },
+    variables: { OnlyActive: true, location_id: currentLocationId },
     skip: !user,
   });
 
@@ -66,15 +74,6 @@ const DigitalMenu = () => {
   });
 
   const cartItemCount = cartData?.cart?.items?.reduce((acc, item) => acc + item.quantity, 0) || 0;
-
-  const { data: locData } = useQuery(GET_LOCATIONS);
-  const locations = locData?.locations || [];
-
-  // Encontrar el ID numérico de la sede actual del usuario basado en su nombre
-  const currentLocation = locations.find(loc => 
-    loc.name?.trim().toLowerCase() === user?.branch?.trim().toLowerCase()
-  );
-  const currentLocationId = currentLocation ? parseInt(currentLocation.id) : null;
 
   // Normalizar platos del menu-service real al formato que usa el componente
   const rawDishes = data?.dishes || [];
@@ -116,6 +115,10 @@ const DigitalMenu = () => {
 
 
   const handleAddToCart = async (dish) => {
+    if (!dish.price || isNaN(dish.price)) {
+      alert("Error: El producto no tiene un precio válido asignado para esta sede.");
+      return;
+    }
     try {
       await addToCart({
         variables: {
