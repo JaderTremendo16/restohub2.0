@@ -24,6 +24,7 @@ export const GET_DISHES = gql`
         profit_margin
         valid_from
       }
+      isAvailable(location_id: $location_id)
     }
   }
 `;

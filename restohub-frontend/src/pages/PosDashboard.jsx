@@ -1070,9 +1070,9 @@ export default function PosDashboard() {
                 const pObj = d.prices?.find(p => String(p.restaurant_id) === String(restaurantId));
                 const pVal = pObj ? pObj.price : 0;
                 
-                // --- Nueva lógica de disponibilidad ---
+                // --- Nueva lógica de disponibilidad con Stock ---
                 const hasInactiveIngredients = d.ingredients?.some(ing => ing.ingredient && ing.ingredient.is_active === false);
-                const isUnavailable = d.is_active === false || hasInactiveIngredients;
+                const isUnavailable = d.is_active === false || hasInactiveIngredients || d.isAvailable === false;
                 
                 return (
                   <option key={d.id} value={d.id} disabled={isUnavailable}>

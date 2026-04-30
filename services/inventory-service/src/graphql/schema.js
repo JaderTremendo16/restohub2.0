@@ -100,6 +100,11 @@ const typeDefs = gql`
     updated_at: String
   }
 
+  extend type Dish @key(fields: "id") {
+    id: ID! @external
+    isAvailable(location_id: ID!): Boolean
+  }
+
   type Query {
     supplyOrders(status: SupplyOrderStatus, location_id: Int): [SupplyOrder!]!
     supplyOrder(id: ID!): SupplyOrder

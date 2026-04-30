@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client/react';
-import { GET_DISHES, COMPLETE_ORDER_MUTATION } from '../graphql/operations';
+import { GET_DISHES } from '../graphql/menu';
+import { COMPLETE_ORDER_MUTATION } from '../graphql/operations';
 import { GET_LOCATIONS, GET_COUNTRIES } from '../graphql/location';
 import { useAuth } from '../context/AuthContext';
 import { UtensilsCrossed, Search, Filter, ShoppingBag, Star, Info, CheckCircle2 } from 'lucide-react';
@@ -13,20 +14,6 @@ const DigitalMenu = () => {
   const [selectedDishForRating, setSelectedDishForRating] = useState(null);
   const [orderStatus, setOrderStatus] = useState({ show: false, text: '' });
 
-  const { data, loading, error, refetch } = useQuery(GET_DISHES, {
-    variables: { activeOnly: true, branch: user?.branch },
-    skip: !user
-  });
-
-  const [completeOrder, { loading: ordering }] = useMutation(COMPLETE_ORDER_MUTATION, {
-    refetchQueries: [
-      'GetLoyaltyAccount',
-      'GetPointHistory',
-      'GetOrders'
-    ],
-    awaitRefetchQueries: true
-  });
-
   // --- Lógica de país y moneda ---
   const { data: locationsData } = useQuery(GET_LOCATIONS);
   const { data: countriesData } = useQuery(GET_COUNTRIES);
@@ -37,6 +24,20 @@ const DigitalMenu = () => {
   const paisActual = countriesData?.countries?.find(
     (c) => String(c.id) === String(sedeActual?.countryId)
   );
+
+  const { data, loading, error, refetch } = useQuery(GET_DISHES, {
+    variables: { OnlyActive: true, location_id: sedeActual ? parseInt(sedeActual.id) : null },
+    skip: !user || !sedeActual
+  });
+
+  const [completeOrder, { loading: ordering }] = useMutation(COMPLETE_ORDER_MUTATION, {
+    refetchQueries: [
+      'GetLoyaltyAccount',
+      'GetPointHistory',
+      'GetOrders'
+    ],
+    awaitRefetchQueries: true
+  });
 
   const formatCurrency = (val) => {
     const locale = paisActual?.locale || "es-CO";
@@ -59,28 +60,35 @@ const DigitalMenu = () => {
   const dishes = data?.dishes || [];
   const categories = ['Todos', ...new Set(dishes.map(d => d.category).filter(Boolean))];
 
+  const getDishPrice = (dish) => {
+    const locId = sedeActual ? parseInt(sedeActual.id) : null;
+    const priceObj = dish.prices?.find(p => parseInt(p.restaurant_id) === locId);
+    return priceObj ? priceObj.price : 0;
+  };
+
   const filteredDishes = dishes.filter(dish => {
     const matchesSearch = dish.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           dish.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'Todos' || dish.category === selectedCategory;
     
-    // --- Nueva lógica de disponibilidad ---
+    // --- Nueva lógica de disponibilidad con Stock ---
     const hasInactiveIngredients = dish.ingredients?.some(ing => ing.ingredient && ing.ingredient.is_active === false);
-    const isAvailable = dish.isActive !== false && !hasInactiveIngredients;
+    const isAvailable = dish.is_active !== false && !hasInactiveIngredients && dish.isAvailable !== false;
     
     return matchesSearch && matchesCategory && isAvailable;
   });
 
   const handleOrder = async (dish) => {
-    if (!window.confirm(`¿Confirmar orden de ${dish.name} por ${formatCurrency(dish.price)}?`)) return;
+    const price = getDishPrice(dish);
+    if (!window.confirm(`¿Confirmar orden de ${dish.name} por ${formatCurrency(price)}?`)) return;
 
     try {
-      const items = JSON.stringify([{ name: dish.name, price: dish.price, qty: 1 }]);
+      const items = JSON.stringify([{ name: dish.name, price: price, qty: 1 }]);
       await completeOrder({
         variables: { 
           cid: user.id, 
           items, 
-          total: parseFloat(dish.price), 
+          total: parseFloat(price), 
           branch: user.branch || "General" 
         }
       });
@@ -150,11 +158,15 @@ const DigitalMenu = () => {
           {filteredDishes.map((dish) => (
             <div key={dish.id} className="group bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all flex flex-col h-full">
               <div className="h-48 bg-slate-50 flex items-center justify-center relative overflow-hidden shrink-0">
-                <div className="text-7xl group-hover:scale-125 transition-transform duration-500 select-none">
-                  {dish.emoji}
-                </div>
+                {dish.image_url ? (
+                  <img src={dish.image_url} alt={dish.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                ) : (
+                  <div className="text-4xl text-slate-300">
+                    <UtensilsCrossed size={48} />
+                  </div>
+                )}
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-2xl shadow-sm border border-slate-100/50">
-                  <span className="text-xl font-black text-slate-900 leading-none">{formatCurrency(dish.price)}</span>
+                  <span className="text-xl font-black text-slate-900 leading-none">{formatCurrency(getDishPrice(dish))}</span>
                 </div>
               </div>
               
@@ -163,11 +175,6 @@ const DigitalMenu = () => {
                   <span className="text-[9px] font-black uppercase text-brand-600 bg-brand-50 px-3 py-1.5 rounded-xl tracking-widest leading-none">
                     {dish.category || 'General'}
                   </span>
-                  {dish.branch && (
-                    <span className="text-[9px] font-black uppercase text-slate-400 bg-slate-50 px-3 py-1.5 rounded-xl tracking-widest leading-none border border-slate-100/50">
-                      Sede: {dish.branch}
-                    </span>
-                  )}
                 </div>
 
                 <h3 className="text-xl font-black text-slate-900 mb-3 leading-tight group-hover:text-brand-600 transition-colors uppercase italic tracking-tight">

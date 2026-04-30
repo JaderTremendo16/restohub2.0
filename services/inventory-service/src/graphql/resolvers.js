@@ -359,6 +359,58 @@ const resolvers = {
       return isNaN(d) ? String(parent.received_date) : d.toISOString();
     },
   },
+  
+  Dish: {
+    isAvailable: async (parent, { location_id }) => {
+      try {
+        const menuUrl = process.env.MENU_SERVICE_URL || "http://menu-service:4002/graphql";
+        const query = `
+          query GetDishIngredients($dish_id: ID!) {
+            DishIngredients(dish_id: $dish_id) {
+              ingredient_id
+              quantity
+              unit
+            }
+          }
+        `;
+
+        const response = await fetch(menuUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query, variables: { dish_id: String(parent.id) } }),
+        });
+
+        if (!response.ok) return true; // Si falla el servicio, mejor mostrar el plato por defecto
+        const { data } = await response.json();
+        const receta = data?.DishIngredients ?? [];
+
+        if (receta.length === 0) return true;
+
+        for (const ing of receta) {
+          const stock = await database("stocks")
+            .where({ ingredient_id: parseInt(ing.ingredient_id), location_id: parseInt(location_id) })
+            .first();
+
+          if (!stock) return false;
+
+          // Conversión básica de unidades
+          let requiredQty = Number(ing.quantity);
+          const currentStock = Number(stock.total_quantity);
+
+          if ((ing.unit === 'g' || ing.unit === 'ml') && (stock.unit === 'kg' || stock.unit === 'l' || stock.unit === 'L')) {
+            requiredQty = requiredQty / 1000;
+          }
+
+          if (currentStock < requiredQty) return false;
+        }
+
+        return true;
+      } catch (err) {
+        console.error("[Inventory] Error checking availability:", err.message);
+        return true;
+      }
+    }
+  }
 };
 
 export default resolvers;
