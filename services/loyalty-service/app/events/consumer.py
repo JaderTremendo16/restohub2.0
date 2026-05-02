@@ -53,12 +53,13 @@ def _process_event(data: dict) -> None:
     y el consumidor del exchange topic.
     """
     customer_id: str  = data.get("customer_id", "")
-    # El orders-service puede enviar `total_amount` (preferido) o `points` directo
     total_amount: float = float(data.get("total_amount", 0))
     points_override: int = int(data.get("points", 0))
 
-    # Prioridad: si viene total_amount calculamos; si no, usamos points directo
-    points = _calculate_points(total_amount) if total_amount > 0 else points_override
+    # Prioridad: usar los puntos pre-calculados por orders-service (ya incluyen
+    # el divisor de moneda: COP/1000, MXN/20, USD/1, etc.).
+    # Solo recalcular si no vienen puntos pre-calculados.
+    points = points_override if points_override > 0 else _calculate_points(total_amount)
 
     if not customer_id:
         logger.warning("[loyalty consumer] order.completed sin customer_id — ignorando.")

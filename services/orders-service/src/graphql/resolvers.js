@@ -312,7 +312,7 @@ const resolvers = {
             const totalPaid = parseFloat(invoice.total);
             const currency = invoice.currency || "USD";
             const divisor = getPointsDivisor(currency);
-            const points_to_earn = Math.floor(totalPaid / divisor);
+            const points_to_earn = Math.round(totalPaid / divisor);
 
             await publishMessage("order.completed", {
               customer_id: order.customer_id,
@@ -456,7 +456,7 @@ const resolvers = {
 
       if (order.customer_id && shouldAwardPoints) {
         const divisor = getPointsDivisor(currency || invoice.currency || "USD");
-        const points_to_earn = Math.floor(totalPaid / divisor);
+        const points_to_earn = Math.round(totalPaid / divisor);
 
         await publishMessage("order.completed", {
           customer_id: order.customer_id,

@@ -286,6 +286,25 @@ const Checkout = () => {
                   {formatPrice(total)}
                 </span>
               </div>
+
+              {/* Preview de puntos de lealtad */}
+              {total > 0 && (() => {
+                const { divisor } = getCurrencyConfig(user?.country);
+                const puntosPotenciales = Math.round(total / divisor);
+                return puntosPotenciales > 0 ? (
+                  <div className="mt-4 p-4 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center gap-3 animate-in fade-in">
+                    <span className="text-2xl">🌟</span>
+                    <div>
+                      <p className="text-emerald-700 font-black text-sm">
+                        ¡Ganarás <span className="text-emerald-600 text-lg">{puntosPotenciales}</span> puntos con esta orden!
+                      </p>
+                      <p className="text-emerald-500 text-[10px] font-medium mt-0.5">
+                        Los puntos que recibirás por esta compra.
+                      </p>
+                    </div>
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>
