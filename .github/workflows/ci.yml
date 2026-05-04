@@ -1,0 +1,98 @@
+name: RestoHub CI/CD - Full Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  test-and-validate:
+    name: "Tests & Quality Audit"
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Global Dependencies
+      run: npm install
+
+    - name: Install Microservices Dependencies (with tests)
+      run: |
+        npm install --prefix services/orders-service
+        npm install --prefix services/kitchen-service
+        npm install --prefix services/pos-service
+
+    - name: Run Global Tests & Coverage
+      run: npm run test:coverage:all
+
+    - name: Security Audit
+      run: npm audit --audit-level=high || true
+
+  build-and-push:
+    name: "Build & Push: ${{ matrix.service }}"
+    needs: test-and-validate
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: gateway
+            context: ./gateway
+          - service: frontend
+            context: ./restohub-frontend
+          - service: customer-frontend
+            context: ./customer-frontend
+          - service: ingredients-service
+            context: ./services/ingredients-service
+          - service: menu-service
+            context: ./services/menu-service
+          - service: inventory-service
+            context: ./services/inventory-service
+          - service: orders-service
+            context: ./services/orders-service
+          - service: kitchen-service
+            context: ./services/kitchen-service
+          - service: pos-service
+            context: ./services/pos-service
+          - service: location-service
+            context: ./services/location-service
+          - service: customer-service
+            context: ./services/customer-service
+          - service: loyalty-service
+            context: ./services/loyalty-service
+          - service: staff-api
+            context: ./services/staff-service/backend
+          - service: staff-subgraph
+            context: ./services/staff-subgraph
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Build and Push Image
+      uses: docker/build-push-action@v5
+      with:
+        context: ${{ matrix.context }}
+        push: true
+        tags: |
+          ghcr.io/${{ github.repository }}/${{ matrix.service }}:latest
+          ghcr.io/${{ github.repository }}/${{ matrix.service }}:${{ github.sha }}
