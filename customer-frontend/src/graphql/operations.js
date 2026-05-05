@@ -364,6 +364,16 @@ export const GET_COUNTRIES = gql`
   }
 `;
 
+export const LIST_ALL_EXTERNAL_COUNTRIES = gql`
+  query ListAllExternalCountries {
+    listAllExternalCountries {
+      name
+      flag
+      code
+    }
+  }
+`;
+
 export const GET_LOCATIONS = gql`
   query GetLocations {
     locations {

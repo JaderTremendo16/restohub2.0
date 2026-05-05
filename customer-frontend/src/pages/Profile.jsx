@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   UPDATE_PROFILE_MUTATION,
+  LIST_ALL_EXTERNAL_COUNTRIES,
   GET_COUNTRIES,
   GET_LOCATIONS,
 } from "../graphql/operations";
@@ -23,10 +24,12 @@ import {
 const Profile = () => {
   const { user, updateUser, logout, getCurrencyConfig } = useAuth();
 
-  const { data: countriesData, loading: loadingCountries } = useQuery(GET_COUNTRIES);
-  const { data: locationsData, loading: loadingLocations } = useQuery(GET_LOCATIONS);
+  const { data: extCountriesData, loading: loadingExt } = useQuery(LIST_ALL_EXTERNAL_COUNTRIES);
+  const { data: intCountriesData, loading: loadingInt } = useQuery(GET_COUNTRIES);
+  const { data: locationsData, loading: loadingLocs } = useQuery(GET_LOCATIONS);
 
-  const countries = countriesData?.countries || [];
+  const countries = extCountriesData?.listAllExternalCountries || [];
+  const internalCountries = intCountriesData?.countries || [];
   const locations = locationsData?.locations || [];
 
   const [formData, setFormData] = useState({
@@ -34,11 +37,14 @@ const Profile = () => {
     email: user?.email || "",
     phone: user?.phone || "",
     country: user?.country || "",
+    countryCode: "", // Se llenará en el useEffect o al cambiar
+    city: user?.city || "",
     branch: user?.branch || "",
     address: user?.address || "",
     latitude: user?.latitude || null,
     longitude: user?.longitude || null,
   });
+  const [suggestedCenter, setSuggestedCenter] = useState([4.6097, -74.0817]);
   const [showSuccess, setShowSuccess] = useState(false);
 
   const [updateProfile, { loading: updating }] = useMutation(
@@ -52,37 +58,82 @@ const Profile = () => {
     },
   );
 
-  const handleChange = (e) => {
+  useEffect(() => {
+    if (user?.country) {
+      // Sincronizar el countryCode inicial
+      if (countries.length > 0) {
+        const cObj = countries.find(c => c.name === user.country);
+        if (cObj) setFormData(prev => ({ ...prev, countryCode: cObj.code }));
+      }
+
+      const centerMap = async () => {
+        try {
+          const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(user.country)}&limit=1`);
+          const data = await response.json();
+          if (data && data[0]) {
+            setSuggestedCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+          }
+        } catch (err) {
+          console.error("Error centering map on load:", err);
+        }
+      };
+      centerMap();
+    }
+  }, [user?.country]);
+
+  const handleChange = async (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (name === 'country') {
+      const selectedCountry = countries.find(c => c.name === value);
+      const code = selectedCountry?.code || '';
+
+      setFormData(prev => ({
+        ...prev,
+        country: value,
+        countryCode: code,
+        city: '',
+        address: '',
+        latitude: null,
+        longitude: null,
+        branch: ''
+      }));
+
+      try {
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=1`);
+        const data = await response.json();
+        if (data && data[0]) {
+          setSuggestedCenter([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        }
+      } catch (err) {
+        console.error("Error centering map:", err);
+      }
+    }
   };
 
-  const handleLocationChange = (lat, lng, address) => {
+  const handleLocationChange = (lat, lng, address, city) => {
     setFormData((prev) => ({
       ...prev,
       latitude: lat,
       longitude: lng,
       address: address || prev.address,
+      city: city || prev.city,
     }));
   };
 
-  const getCountryCenter = (countryName) => {
-    const country = countries.find(c => c.name === countryName);
-    return country ? null : [4.6097, -74.0817];
-  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     updateProfile({
       variables: {
         id: user.id,
-        ...formData,
-        city: "Sede", // Valor por defecto ya que eliminamos el campo ciudad
+        ...formData
       },
     });
   };
 
-  if (loadingCountries || loadingLocations) {
+  if (loadingExt || loadingInt || loadingLocs) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4 text-slate-400 font-bold">
         <Loader2 className="animate-spin text-brand-600" size={32} />
@@ -179,6 +230,24 @@ const Profile = () => {
                   />
                 </div>
               </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-slate-700 px-1">
+                  Ciudad
+                </label>
+                <div className="relative">
+                  <MapPin
+                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"
+                    size={18}
+                  />
+                  <input
+                    name="city"
+                    value={formData.city}
+                    onChange={handleChange}
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-slate-800"
+                  />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -204,7 +273,7 @@ const Profile = () => {
                   className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-700 font-bold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all text-sm"
                 >
                   {countries.map((c) => (
-                    <option key={c.id} value={c.name}>
+                    <option key={c.code} value={c.name}>
                       {c.name}
                     </option>
                   ))}
@@ -230,10 +299,11 @@ const Profile = () => {
                     <option value="">Selecciona una sede</option>
                     {locations
                       .filter((loc) => {
-                        const countryObj = countries.find(
-                          (c) => c.name === formData.country,
+                        // Buscamos el ID interno del país seleccionado por nombre
+                        const internalCountry = internalCountries.find(
+                          (c) => c.name.toLowerCase() === formData.country.toLowerCase(),
                         );
-                        return loc.countryId === countryObj?.id;
+                        return loc.countryId === internalCountry?.id;
                       })
                       .map((b) => (
                         <option key={b.id} value={b.name}>
@@ -268,7 +338,9 @@ const Profile = () => {
                   lat={formData.latitude}
                   lng={formData.longitude}
                   onChange={handleLocationChange}
-                  suggestedCenter={getCountryCenter(formData.country)}
+                  suggestedCenter={suggestedCenter}
+                  targetCountry={formData.country}
+                  targetCountryCode={formData.countryCode}
                   branchLocation={locations.find(loc => loc.name === formData.branch)}
                 />
               </div>
