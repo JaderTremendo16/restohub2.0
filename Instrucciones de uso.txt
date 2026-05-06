@@ -59,7 +59,12 @@ npm install @apollo/client
 
 Ya no es necesario hacer esto, ya el servicio funciona solo con el docker-compose, pero pueden usar estos comandos por si acaso.
 
-Por cierto, hay 2 localhost
+Por cierto, hay 2 localhost:
+- Frontend: http://localhost:3000
+- Grafana (Monitoreo): http://localhost:3010 (User: admin / Pass: admin123)
+
+Para crear acceso público a Grafana (Localtunnel):
+npx localtunnel --port 3010 --subdomain restohub-grafana
 
 http://localhost:3000/ para el frontend de admin/gerente
 

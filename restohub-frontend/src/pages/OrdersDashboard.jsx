@@ -867,7 +867,7 @@ function PaymentModal({ order, onClose, showMsg, refetch }) {
 
   const handlePayWithPayPal = async (orderID, order_id) => {
     try {
-      const res = await fetch("http://localhost:3001/capture-paypal-order", {
+      const res = await fetch("/orders-api/capture-paypal-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderID, order_id }),
@@ -935,7 +935,7 @@ function PaymentModal({ order, onClose, showMsg, refetch }) {
                   style={{ layout: "vertical", height: 35 }}
                   createOrder={async () => {
                     const res = await fetch(
-                      "http://localhost:3001/create-paypal-order",
+                      "/orders-api/create-paypal-order",
                       {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },

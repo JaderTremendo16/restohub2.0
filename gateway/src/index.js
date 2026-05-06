@@ -5,11 +5,29 @@ import { startStandaloneServer } from "@apollo/server/standalone"; // En Apollo 
 import {
   ApolloGateway,
   IntrospectAndCompose,
-  RemoteGraphQLDataSource,
-} from "@apollo/gateway"; //RemoteGraphQLDataSource se usa para enviar el token de autenticación a los microservicios.
+} from "@apollo/gateway";
+import { RemoteGraphQLDataSource } from "@apollo/gateway";
 import dotenv from "dotenv";
+import http from "http";
+import { register, collectDefaultMetrics } from "prom-client";
 
 dotenv.config(); // Cargamos las variables de entorno.
+
+// Iniciamos la recolección de métricas por defecto (CPU, RAM, etc.)
+collectDefaultMetrics();
+
+// Servidor de métricas para Prometheus en el puerto 4099
+http.createServer(async (req, res) => {
+  if (req.url === "/metrics") {
+    res.setHeader("Content-Type", register.contentType);
+    res.end(await register.metrics());
+  } else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
+}).listen(4099, () => {
+  console.log("📊 Servidor de métricas de Prometheus corriendo en el puerto 4099");
+});
 
 // Configuramos el Apollo Gateway para que "fusione" los esquemas de los microservicios.
 async function start() {

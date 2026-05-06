@@ -18,6 +18,9 @@ volumes:
   rh2_customer_db_data:
   rh2_loyalty_db_data:
   redis_data:
+  prometheus_data:
+  grafana_data:
+
 
 
 services:
@@ -536,3 +539,49 @@ services:
       - gateway
     networks:
       - restohub-network
+
+  # ── Monitoreo ──────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: restohub-prometheus
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - "9090:9090"
+    networks:
+      - restohub-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: restohub-grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./grafana/provisioning/dashboards/dashboard_config.yml:/etc/grafana/provisioning/dashboards/restohub_provider.yml
+      - ./grafana/provisioning/dashboards/restohub_dashboard.json:/var/lib/grafana/dashboards/restohub_dashboard.json
+    ports:
+      - "3010:3000"
+    networks:
+      - restohub-network
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SERVER_DOMAIN=restohub-grafana.loca.lt
+      - GF_SERVER_ROOT_URL=https://restohub-grafana.loca.lt
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SERVER_ENABLE_GZIP=false
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: restohub-node-exporter
+    ports:
+      - "9100:9100"
+    networks:
+      - restohub-network
+    restart: unless-stopped

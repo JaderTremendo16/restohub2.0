@@ -7,9 +7,10 @@
         "start": "node src/index.js"
     },
     "dependencies": {
-        "@apollo/server": "^4.10.0",
         "@apollo/gateway": "^2.7.0",
+        "@apollo/server": "^4.10.0",
+        "dotenv": "^16.4.5",
         "graphql": "^16.8.1",
-        "dotenv": "^16.4.5"
+        "prom-client": "^15.1.3"
     }
 }

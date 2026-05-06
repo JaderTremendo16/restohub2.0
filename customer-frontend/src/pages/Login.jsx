@@ -21,7 +21,7 @@ export default function Login() {
       if (isAdmin) {
         // Redirigir al portal de administración oficial (restohub-frontend) que corre en el puerto 3000
         // En producción sería una URL real. Para local:
-        window.location.href = 'http://localhost:3000';
+        window.location.href = '/';
       } else {
         navigate('/');
       }

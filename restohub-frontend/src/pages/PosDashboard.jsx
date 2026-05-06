@@ -502,7 +502,7 @@ export default function PosDashboard() {
 
   const handleDeliverWithPayPal = async (orderID, pos_order_id) => {
     try {
-      const res = await fetch("http://localhost:3004/capture-paypal-order", {
+      const res = await fetch("/pos-api/capture-paypal-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderID, pos_order_id }),
@@ -1580,7 +1580,7 @@ export default function PosDashboard() {
                 style={{ layout: "vertical", height: 35 }}
                 createOrder={async () => {
                   const res = await fetch(
-                    "http://localhost:3004/create-paypal-order",
+                    "/pos-api/create-paypal-order",
                     {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
