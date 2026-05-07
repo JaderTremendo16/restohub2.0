@@ -399,11 +399,9 @@ const Checkout = () => {
                         const finalTotal = parseFloat(total).toFixed(2);
                         console.log("Creando orden PayPal por:", finalTotal);
                         return actions.order.create({
-                          intent: "CAPTURE",
                           purchase_units: [{
                             description: "Pedido RestoHub",
                             amount: {
-                              currency_code: "USD",
                               value: finalTotal
                             }
                           }]
