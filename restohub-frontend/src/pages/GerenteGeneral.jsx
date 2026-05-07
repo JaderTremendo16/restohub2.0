@@ -481,9 +481,16 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
               <label style={labelStyle}>País *</label>
               <select
                 value={form.countryId}
-                onChange={(e) =>
-                  setForm({ ...form, countryId: e.target.value })
-                }
+                onChange={(e) => {
+                  const newCountryId = e.target.value;
+                  setForm({ 
+                    ...form, 
+                    countryId: newCountryId,
+                    latitude: null,
+                    longitude: null,
+                    address: "" 
+                  });
+                }}
                 style={inputStyle}
               >
                 <option value="">Seleccionar país</option>
@@ -504,6 +511,10 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
                 countryName={
                   countries?.find((c) => String(c.id) === String(form.countryId))
                     ?.name
+                }
+                countryCode={
+                  countries?.find((c) => String(c.id) === String(form.countryId))
+                    ?.code
                 }
                 onLocationChange={({ lat, lng, address }) => {
                   setForm((prev) => ({

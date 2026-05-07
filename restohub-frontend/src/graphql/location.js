@@ -8,6 +8,7 @@ export const GET_COUNTRIES = gql`
     countries {
       id
       name
+      code
       currencyCode
       currencySymbol
       timezone
@@ -119,6 +120,7 @@ export const LOGIN = gql`
 export const CREATE_COUNTRY = gql`
   mutation CreateCountry(
     $name: String!
+    $code: String!
     $currencyCode: String!
     $currencySymbol: String
     $timezone: String!
@@ -127,6 +129,7 @@ export const CREATE_COUNTRY = gql`
   ) {
     createCountry(
       name: $name
+      code: $code
       currencyCode: $currencyCode
       currencySymbol: $currencySymbol
       timezone: $timezone
@@ -135,6 +138,7 @@ export const CREATE_COUNTRY = gql`
     ) {
       id
       name
+      code
       currencyCode
       currencySymbol
       timezone

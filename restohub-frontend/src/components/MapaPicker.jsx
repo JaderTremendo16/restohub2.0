@@ -36,6 +36,7 @@ export default function MapaPicker({
   lat,
   lng,
   countryName,
+  countryCode,
   onLocationChange,
 }) {
   const containerRef = useRef(null);
@@ -48,10 +49,10 @@ export default function MapaPicker({
     latLngRef.current = { lat, lng };
   }, [lat, lng]);
 
-  const countryRef = useRef(countryName);
+  const countryRef = useRef({ name: countryName, code: countryCode });
   useEffect(() => {
-    countryRef.current = countryName;
-  }, [countryName]);
+    countryRef.current = { name: countryName, code: countryCode };
+  }, [countryName, countryCode]);
 
   const [searchText, setSearchText] = useState("");
   const [searching, setSearching] = useState(false);
@@ -168,22 +169,37 @@ export default function MapaPicker({
       const data = await res.json();
 
       const detectedCountry = data.address?.country;
+      const detectedCode = data.address?.country_code; // Viene en minúsculas (ej: 'br')
       const currentCountry = countryRef.current;
 
-      // Validación de coherencia de país
-      if (currentCountry && detectedCountry) {
-        // Normalizamos quitando tildes y mayúsculas para comparar "Japón" == "japon"
+      // Validación de país por código (más robusto)
+      if (currentCountry.code && detectedCode) {
+        if (detectedCode.toLowerCase() !== currentCountry.code.toLowerCase()) {
+          setSearchError(
+            `Error: Has seleccionado un país con código ${currentCountry.code.toUpperCase()}, pero el pin está en un lugar con código ${detectedCode.toUpperCase()}.`,
+          );
+          // Revertimos el pin
+          if (fallbackLat && fallbackLng && markerRef.current) {
+            markerRef.current.setLatLng([fallbackLat, fallbackLng]);
+          } else if (markerRef.current) {
+            markerRef.current.remove();
+            markerRef.current = null;
+            onLocationChange({ lat: null, lng: null, address: "" });
+          }
+          return;
+        }
+      } else if (currentCountry.name && detectedCountry) {
+        // Fallback por nombre
         const normalize = (s) =>
           s
             .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "");
-        if (normalize(detectedCountry) !== normalize(currentCountry)) {
+        if (normalize(detectedCountry) !== normalize(currentCountry.name)) {
           setSearchError(
-            `Error: Has seleccionado ${currentCountry}, pero el pin está en ${detectedCountry}.`,
+            `Error: Has seleccionado ${currentCountry.name}, pero el pin está en ${detectedCountry}.`,
           );
-
-          // Revertimos el pin a su posición anterior válida
+          // Revertimos el pin
           if (fallbackLat && fallbackLng && markerRef.current) {
             markerRef.current.setLatLng([fallbackLat, fallbackLng]);
           } else if (markerRef.current) {
@@ -234,18 +250,26 @@ export default function MapaPicker({
       const { lat: rLat, lon: rLng, display_name, address } = results[0];
 
       const detectedCountry = address?.country;
+      const detectedCode = address?.country_code;
       const currentCountry = countryRef.current;
 
       // Validación de coherencia en búsqueda
-      if (currentCountry && detectedCountry) {
+      if (currentCountry.code && detectedCode) {
+        if (detectedCode.toLowerCase() !== currentCountry.code.toLowerCase()) {
+          setSearchError(
+            `La dirección buscada está fuera del país seleccionado (${currentCountry.code.toUpperCase()}).`,
+          );
+          return;
+        }
+      } else if (currentCountry.name && detectedCountry) {
         const normalize = (s) =>
           s
             .toLowerCase()
             .normalize("NFD")
             .replace(/[\u0300-\u036f]/g, "");
-        if (normalize(detectedCountry) !== normalize(currentCountry)) {
+        if (normalize(detectedCountry) !== normalize(currentCountry.name)) {
           setSearchError(
-            `La dirección buscada parece estar en ${detectedCountry}, pero debes buscar en ${currentCountry}.`,
+            `La dirección buscada parece estar en ${detectedCountry}, pero debes buscar en ${currentCountry.name}.`,
           );
           return;
         }

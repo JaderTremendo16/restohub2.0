@@ -76,7 +76,7 @@ module.exports = {
 
     createCountry: async (
       _,
-      { name, currencyCode, currencySymbol, timezone, flagUrl, locale },
+      { name, code, currencyCode, currencySymbol, timezone, flagUrl, locale },
       { user },
     ) => {
       if (!user || user.role !== "general_manager") {
@@ -85,6 +85,7 @@ module.exports = {
       const [country] = await db("countries")
         .insert({
           name,
+          code,
           currency_code: currencyCode,
           currency_symbol: currencySymbol,
           timezone,

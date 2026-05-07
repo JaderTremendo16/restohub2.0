@@ -7,6 +7,7 @@ module.exports = gql`
   type Country @key(fields: "id") {
     id: ID!
     name: String!
+    code: String
     currencyCode: String!
     currencySymbol: String
     timezone: String!
@@ -83,6 +84,7 @@ module.exports = gql`
 
     createCountry(
       name: String!
+      code: String!
       currencyCode: String!
       currencySymbol: String
       timezone: String!
