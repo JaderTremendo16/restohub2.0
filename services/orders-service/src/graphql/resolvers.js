@@ -361,14 +361,15 @@ const resolvers = {
         (sum, item) => sum + parseFloat(item.subtotal),
         0,
       );
-      const tax = 0;
       const total = totalAmount;
+      const subtotal = total / 1.19;
+      const tax = total - subtotal;
 
       const invoice = await db("invoices")
         .insert({
           order_id,
           invoice_number: `FAC-${Date.now()}`,
-          subtotal: totalAmount.toFixed(2),
+          subtotal: subtotal.toFixed(2),
           tax: tax.toFixed(2),
           total: total.toFixed(2),
           customer_name,
@@ -446,6 +447,38 @@ const resolvers = {
           status: "delivered",
           restaurant_id: order.restaurant_id,
           customer_id: order.customer_id,
+        });
+      }
+
+      // AUTOMATIZACIÓN PARA PEDIDOS WEB: Enviar a cocina automáticamente al pagar o procesar checkout
+      if (order.status === "pending" && order.channel === "web") {
+        await db("orders").where({ id: order_id }).update({
+          status: "validated",
+          validated_at: new Date(),
+          updated_at: new Date(),
+        });
+
+        await publishMessage("order_status_updated", {
+          order_id,
+          status: "validated",
+          restaurant_id: order.restaurant_id,
+          customer_id: order.customer_id,
+        });
+
+        await publishMessage("order_created", {
+          order_id: order.id,
+          restaurant_id: order.restaurant_id,
+          customer_id: order.customer_id,
+          channel: order.channel,
+          status: "validated",
+          priority: order.priority,
+          area: order.area,
+          origin: "orders",
+          items: items.map((i) => ({
+            product_name: i.product_name,
+            quantity: i.quantity,
+            notes: i.notes || null,
+          })),
         });
       }
 

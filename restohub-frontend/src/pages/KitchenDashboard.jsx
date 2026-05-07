@@ -163,7 +163,7 @@ export default function KitchenDashboard() {
       (o) => o.status === "in_preparation",
     ),
     packing: ordersForMySede.filter((o) => o.status === "packing"),
-    ready: readyAll.slice(-5), // Solo los últimos 5
+    ready: readyAll.slice(0, 10), // Los 10 más recientes
   };
 
   const pendingCount = groupedOrders.pending.length;
@@ -375,6 +375,11 @@ export default function KitchenDashboard() {
                         <div style={s.timeRow}>
                           <span style={{ ...s.elapsed, color: "#2ecc71", display: "flex", alignItems: "center", gap: "4px" }}>
                             <CheckCircle2 size={13} /> Listo en {elapsed} min
+                            {order.ready_at && (
+                              <span style={{color: "#888", fontSize: "0.75rem", marginLeft: "4px", fontWeight: "normal"}}>
+                                ({new Date(isNaN(Number(order.ready_at)) ? order.ready_at : Number(order.ready_at)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})})
+                              </span>
+                            )}
                           </span>
                         </div>
                       )}
@@ -418,18 +423,24 @@ export default function KitchenDashboard() {
                               </button>
                             )}
                           {order.status === "ready" && (
-                            <p
+                            <button
                               style={{
-                                color: "#2ecc71",
-                                fontSize: "0.8rem",
-                                margin: 0,
+                                ...s.actionBtn,
+                                background: "#2e7d32",
+                                color: "white",
+                                width: "100%",
+                                padding: "0.5rem",
+                                fontSize: "0.85rem",
+                                fontWeight: "bold",
                                 display: "flex",
                                 alignItems: "center",
-                                gap: "4px",
+                                justifyContent: "center",
+                                gap: "0.4rem",
                               }}
+                              onClick={() => handleStatusChange(order.id, "delivered")}
                             >
-                              <CheckCircle2 size={14} /> Listo para entregar
-                            </p>
+                              <CheckCircle2 size={14} /> Enviar al cliente
+                            </button>
                           )}
                         <button
                           style={{

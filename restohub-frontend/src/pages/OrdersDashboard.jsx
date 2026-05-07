@@ -90,8 +90,8 @@ const AREA_ICONS = {
 };
 
 const ORDER_ALLOWED_TRANSITIONS = {
-  pending: ["validated", "cancelled"],
-  validated: ["cancelled"],
+  pending: ["validated"],
+  validated: [],
   in_preparation: [],
   packing: [],
   ready: [],
@@ -1088,19 +1088,7 @@ function OrderCard({
         >
           <Smartphone size={13} />
         </span>{" "}
-        {order.channel} ·{" "}
-        <span
-          style={{ opacity: 0.7, display: "inline-flex", alignItems: "center" }}
-        >
-          <MapPin size={13} />
-        </span>{" "}
-        {AREA_LABELS[order.area] ? (
-          <>
-            {AREA_ICONS[order.area]} {AREA_LABELS[order.area]}
-          </>
-        ) : (
-          order.area || "—"
-        )}
+        {order.channel}
       </p>
       {order.notes && <p style={s.info}>📝 {order.notes}</p>}
       <LiveTimer order={order} />
@@ -1123,20 +1111,7 @@ function OrderCard({
               </button>
             )}
 
-            {order.status === "ready" && (
-              <button
-                style={{
-                  ...s.btnSm,
-                  background: "#e3f2fd",
-                  color: "#1976d2",
-                  border: "1px solid #bbdefb",
-                  fontWeight: 700,
-                }}
-                onClick={() => onStatusChange(order.id, "delivered")}
-              >
-                🚚 Enviar al cliente a su dirección
-              </button>
-            )}
+
 
             {(order.status === "ready" || order.status === "delivered") && (
               <button
@@ -1180,7 +1155,11 @@ function OrderCard({
                 {nextSteps.map((st) => (
                   <button
                     key={st}
-                    style={{ ...s.btnXS, background: STATUS_COLORS[st] }}
+                    style={{
+                      ...s.btnXS,
+                      background: STATUS_COLORS[st],
+                      color: STATUS_TEXT_COLORS[st]
+                    }}
                     onClick={() => onStatusChange(order.id, st)}
                   >
                     {STATUS_LABELS[st]}
@@ -1201,7 +1180,7 @@ function OrderCard({
                       ...s.btnXS,
                       background:
                         order.priority === p ? PRIORITY_COLORS[p] : "#f1f3f5",
-                      color: order.priority === p ? "#fff" : "#555",
+                      color: order.priority === p ? PRIORITY_TEXT[p] : "#555",
                       border: `1px solid ${order.priority === p ? PRIORITY_COLORS[p] : "#ddd"}`,
                     }}
                     onClick={() => onPriorityChange(order.id, p)}
@@ -1373,10 +1352,13 @@ export default function OrdersDashboard() {
   const filtered =
     filterStatus === "all"
       ? orders
-      : orders.filter((o) => o.status === filterStatus);
+      : filterStatus === "pending"
+        ? orders.filter((o) => o.status === "pending" || o.status === "validated")
+        : orders.filter((o) => o.status === filterStatus);
 
   const counts = orders.reduce((acc, o) => {
-    acc[o.status] = (acc[o.status] || 0) + 1;
+    const st = o.status === "validated" ? "pending" : o.status;
+    acc[st] = (acc[st] || 0) + 1;
     return acc;
   }, {});
 

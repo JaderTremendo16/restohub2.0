@@ -1,4 +1,5 @@
 const db = require("../db/knex");
+const { publishMessage } = require("./publisher");
 
 const listenToKitchen = async (channel) => {
   const queue = "kitchen_status_updated";
@@ -31,6 +32,47 @@ const listenToKitchen = async (channel) => {
 
         if (updated > 0) {
           console.log(`✅ Orden ${order_id} actualizada a: ${status}`);
+
+          if (status === "delivered") {
+            const items = await db("order_items").where({ order_id });
+            const order = await db("orders").where({ id: order_id }).first();
+            
+            await publishMessage("inventory_deduction_requested", {
+              order_id,
+              restaurant_id: order.restaurant_id,
+              items: items.map((i) => ({
+                product_id: i.product_id,
+                quantity: i.quantity,
+              })),
+            });
+
+            if (order.customer_id) {
+              const invoice = await db("invoices").where({ order_id }).first();
+              if (invoice && invoice.status === "paid" && invoice.payment_method === "cash") {
+                const totalPaid = parseFloat(invoice.total);
+                const currency = invoice.currency || "COP";
+                
+                let pointsToAward = 0;
+                if (currency === "COP") {
+                  pointsToAward = Math.floor(totalPaid / 100);
+                } else if (currency === "USD") {
+                  pointsToAward = Math.floor((totalPaid * 4000) / 100);
+                } else {
+                  pointsToAward = Math.floor(totalPaid);
+                }
+
+                if (pointsToAward > 0) {
+                  await publishMessage("order.completed", {
+                    orderId: order_id,
+                    customerId: order.customer_id,
+                    pointsAwarded: pointsToAward,
+                    timestamp: new Date().toISOString()
+                  });
+                  console.log(`🎁 Puntos por efectivo otorgados desde Kitchen: ${pointsToAward}`);
+                }
+              }
+            }
+          }
         } else {
           console.warn(`⚠️ No se encontró la orden ${order_id} en Orders`);
         }

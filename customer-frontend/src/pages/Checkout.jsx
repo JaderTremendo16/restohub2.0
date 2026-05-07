@@ -91,7 +91,7 @@ const Checkout = () => {
 
       // Combinar notas de pago con indicaciones de entrega
       const finalNotes = `Indicaciones: ${deliveryDescription || 'Ninguna'}. ` + 
-                         (paypalData ? `Pagado via PayPal (${paypalData.id})` : `Pago en efectivo (Cambio: $${change})`);
+                         (total === 0 ? `Canjeado con puntos de lealtad` : (paypalData ? `Pagado via PayPal (${paypalData.id})` : `Pago en efectivo (Cambio: $${change})`));
 
       // 1. Crear la orden real para Cocina (orders-service)
       const { data: orderData } = await createRealOrder({
@@ -142,13 +142,13 @@ const Checkout = () => {
       await createPayment({
         variables: {
           order_id: realOrderId,
-          method: paypalData ? "paypal" : "cash",
+          method: total === 0 ? "reward" : (paypalData ? "paypal" : "cash"),
           amount: total,
           currency: currencyCfg.code
         }
       });
 
-      // 4. Registrar en el historial (customer-service) y limpiar carrito
+      // 6. Finalizar la orden en el cliente (vaciar carrito, estado)
       await completeOrder({
         variables: {
           cid: user?.id,
@@ -312,32 +312,48 @@ const Checkout = () => {
         {/* Right Column: Payment & Confirm */}
         <div className="space-y-8">
           <div className="bg-brand-dark rounded-[2.5rem] p-8 text-white space-y-8 shadow-2xl shadow-black/20">
-            <h3 className="text-2xl font-black italic uppercase tracking-tight">Método de Pago</h3>
             
-            <div className="grid grid-cols-2 gap-4">
-              <button 
-                onClick={() => setPaymentMethod('cash')}
-                className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${
-                  paymentMethod === 'cash' ? 'border-brand-orange bg-brand-orange/10' : 'border-white/10 hover:border-white/20'
-                }`}
-              >
-                <Banknote size={32} className={paymentMethod === 'cash' ? 'text-brand-orange' : 'text-slate-400'} />
-                <span className="font-black text-xs uppercase tracking-widest">Efectivo</span>
-              </button>
-              
-              <button 
-                onClick={() => setPaymentMethod('paypal')}
-                className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${
-                  paymentMethod === 'paypal' ? 'border-brand-orange bg-brand-orange/10' : 'border-white/10 hover:border-white/20'
-                }`}
-              >
-                <CreditCard size={32} className={paymentMethod === 'paypal' ? 'text-brand-orange' : 'text-slate-400'} />
-                <span className="font-black text-xs uppercase tracking-widest">PayPal</span>
-              </button>
-            </div>
+            {total === 0 ? (
+              <div className="text-center space-y-4">
+                <h3 className="text-2xl font-black italic uppercase tracking-tight text-emerald-400">Canje de Premio</h3>
+                <p className="text-sm font-medium text-slate-300">Tu pedido se procesará usando tus puntos. No requiere pago adicional.</p>
+                <button 
+                  disabled={isProcessing}
+                  onClick={() => processOrder()}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white p-6 rounded-[2rem] font-black text-lg italic uppercase tracking-widest transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3 shadow-xl shadow-emerald-500/20 mt-4"
+                >
+                  {isProcessing ? <Loader2 className="animate-spin" size={24} /> : <CheckCircle2 size={24} />}
+                  Canjear con Puntos
+                </button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-2xl font-black italic uppercase tracking-tight">Método de Pago</h3>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <button 
+                    onClick={() => setPaymentMethod('cash')}
+                    className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${
+                      paymentMethod === 'cash' ? 'border-brand-orange bg-brand-orange/10' : 'border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <Banknote size={32} className={paymentMethod === 'cash' ? 'text-brand-orange' : 'text-slate-400'} />
+                    <span className="font-black text-xs uppercase tracking-widest">Efectivo</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => setPaymentMethod('paypal')}
+                    className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${
+                      paymentMethod === 'paypal' ? 'border-brand-orange bg-brand-orange/10' : 'border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <CreditCard size={32} className={paymentMethod === 'paypal' ? 'text-brand-orange' : 'text-slate-400'} />
+                    <span className="font-black text-xs uppercase tracking-widest">PayPal</span>
+                  </button>
+                </div>
 
-            {/* Cash Logic (Only if paymentMethod === 'cash') */}
-            {paymentMethod === 'cash' && (
+                {/* Cash Logic (Only if paymentMethod === 'cash') */}
+                {paymentMethod === 'cash' && (
               <div className="p-6 bg-white/5 rounded-3xl border border-white/10 space-y-4 animate-in slide-in-from-top-4">
                 <h4 className="text-sm font-black uppercase tracking-widest text-brand-orange flex items-center gap-2">
                   <Calculator size={16} /> Pago en Efectivo
@@ -377,6 +393,7 @@ const Checkout = () => {
                 ) : (
                   <>
                     <PayPalButtons 
+                      fundingSource="paypal"
                       style={{ layout: "vertical", shape: "pill" }}
                       createOrder={(data, actions) => {
                         const finalTotal = parseFloat(total).toFixed(2);
@@ -392,9 +409,10 @@ const Checkout = () => {
                           }]
                         });
                       }}
-                      onApprove={async (data, actions) => {
-                        const details = await actions.order.capture();
-                        processOrder(details);
+                      onApprove={(data, actions) => {
+                        return actions.order.capture().then((details) => {
+                          processOrder(details);
+                        });
                       }}
                       onError={(err) => {
                         console.error("DETALLE ERROR PAYPAL:", err);
@@ -429,6 +447,8 @@ const Checkout = () => {
                   Completa el pago arriba para finalizar
                 </p>
               </div>
+            )}
+              </>
             )}
           </div>
 
