@@ -246,9 +246,9 @@ const CustomerHome = () => {
                         {new Date(act.date).toLocaleDateString()}
                       </div>
                     </div>
-                    <div className="text-right">
+                    <div className="text-right min-w-[80px]">
                       <div
-                        className={`font-black tracking-tight ${act.points.toString().includes("+") ? "text-emerald-600" : "text-rose-500"}`}
+                        className={`font-black tracking-tight whitespace-nowrap ${act.points.toString().includes("+") ? "text-emerald-600" : "text-rose-500"}`}
                       >
                         {act.points} pts
                       </div>

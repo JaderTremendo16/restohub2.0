@@ -83,52 +83,68 @@ router.post("/capture-paypal-order", async (req, res) => {
           updated_at: new Date(),
         });
 
-        // Obtener orden ANTES de actualizar para tener el customer_id
+        // Obtener orden ANTES de actualizar para tener todos los datos
         const order = await db("orders").where({ id: order_id }).first();
+        const items = await db("order_items").where({ order_id });
 
-        // Actualizar pedido a entregado
+        // ✅ ACTUALIZACIÓN: En lugar de 'delivered', va a 'validated' para que pase por cocina
         await db("orders").where({ id: order_id }).update({
-          status: "delivered",
-          delivered_at: new Date(),
+          status: "validated",
+          validated_at: new Date(),
           updated_at: new Date(),
         });
 
-        // ✅ Publicar evento de lealtad: 1 punto = $1 USD
-        if (order && order.customer_id) {
-          try {
-            const { publishMessage } = require("../messaging/publisher");
-            const points = Math.floor(paidAmountUSD); // 1 pt por dólar
-            await publishMessage("order.completed", {
-              customer_id: order.customer_id,
-              total_amount: paidAmountUSD, // USD — loyalty lo usa directamente
-              points,
-              payment_method: "paypal",
-              order_id,
-            });
-            console.log(
-              `🎯 Loyalty event: customer=${order.customer_id} +${points} pts (USD $${paidAmountUSD})`
-            );
-          } catch (loyaltyErr) {
-            console.error("⚠️  No se pudo publicar loyalty event:", loyaltyErr.message);
-          }
-        }
+        // ✅ Notificar cambio de estado a 'validated'
+        const { publishMessage, publishOrderCompleted } = require("../messaging/publisher");
+        await publishMessage("order_status_updated", {
+          order_id,
+          status: "validated",
+          restaurant_id: order.restaurant_id,
+          customer_id: order.customer_id,
+        });
 
-        // ✅ Publicar descuento de inventario
-        try {
-          const { publishMessage } = require("../messaging/publisher");
-          const items = await db("order_items").where({ order_id });
-          await publishMessage("inventory_deduction_requested", {
-            order_id,
-            restaurant_id: order.restaurant_id,
-            items: items.map((i) => ({
-              product_id: i.product_id,
-              quantity: i.quantity,
-            })),
-          });
-          console.log(`📦 Inventario: Solicitado descuento para orden ${order_id}`);
-        } catch (invErr) {
-          console.error("⚠️  No se pudo publicar descuento de inventario:", invErr.message);
-        }
+        // ✅ ENVIAR A COCINA (Evento order_created)
+        await publishMessage("order_created", {
+          order_id: order.id,
+          restaurant_id: order.restaurant_id,
+          customer_id: order.customer_id,
+          channel: order.channel,
+          status: "validated",
+          priority: order.priority,
+          area: order.area,
+          origin: "orders",
+          items: items.map((i) => ({
+            product_name: i.product_name,
+            quantity: i.quantity,
+            notes: i.notes || null,
+          })),
+        });
+
+            // ✅ Publicar evento de lealtad
+            if (order && order.customer_id) {
+              try {
+                // Para PayPal: si el valor es pequeño (ej: 15.50 USD), multiplicamos por 1000.
+                // Si es grande (ej: 65000 COP), lo pasamos tal cual.
+                // Esto asegura que 1 USD = 1000 'unidades' = 1 punto, y 1000 COP = 1 punto.
+                const totalForLoyalty = paidAmountUSD < 1000 ? paidAmountUSD * 1000 : paidAmountUSD;
+                
+            await publishOrderCompleted(
+              order.customer_id, 
+              totalForLoyalty, 
+              order_id,
+              "paypal"
+            );
+                console.log(
+                  `🎯 Loyalty event (PayPal): customer=${order.customer_id} +${Math.floor(totalForLoyalty / 1000)} pts`
+                );
+              } catch (loyaltyErr) {
+                console.error("⚠️  No se pudo publicar loyalty event:", loyaltyErr.message);
+              }
+            }
+
+        // ✅ Publicar descuento de inventario (opcional aquí, o esperar a 'delivered')
+        // Generalmente el inventario se descuenta al entregar, pero algunos prefieren al validar.
+        // Lo dejaremos para 'delivered' para ser consistentes con resolvers.js
       }
 
       res.json({ status: "success" });

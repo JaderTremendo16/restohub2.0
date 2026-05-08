@@ -60,12 +60,14 @@ const publishEvent = async (routingKey, payload) => {
  * @param {string} customerId
  * @param {number} totalAmount  - Total del pedido en pesos
  * @param {string} orderId
+ * @param {string} paymentMethod - 'cash', 'paypal', 'reward', etc.
  */
-const publishOrderCompleted = async (customerId, totalAmount, orderId) => {
+const publishOrderCompleted = async (customerId, totalAmount, orderId, paymentMethod = 'unknown') => {
   const payload = {
     customer_id: customerId,
     order_id:    orderId,
     total_amount: totalAmount,
+    payment_method: paymentMethod,
     // Precalculado como referencia, pero el consumer usa total_amount
     points: Math.floor(totalAmount / 1000),
     timestamp: new Date().toISOString(),

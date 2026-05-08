@@ -1,5 +1,5 @@
 const db = require("../db/knex");
-const { publishMessage } = require("./publisher");
+const { publishMessage, publishOrderCompleted } = require("./publisher");
 
 const listenToKitchen = async (channel) => {
   const queue = "kitchen_status_updated";
@@ -50,26 +50,15 @@ const listenToKitchen = async (channel) => {
               const invoice = await db("invoices").where({ order_id }).first();
               if (invoice && invoice.status === "paid" && invoice.payment_method === "cash") {
                 const totalPaid = parseFloat(invoice.total);
-                const currency = invoice.currency || "COP";
                 
-                let pointsToAward = 0;
-                if (currency === "COP") {
-                  pointsToAward = Math.floor(totalPaid / 100);
-                } else if (currency === "USD") {
-                  pointsToAward = Math.floor((totalPaid * 4000) / 100);
-                } else {
-                  pointsToAward = Math.floor(totalPaid);
-                }
-
-                if (pointsToAward > 0) {
-                  await publishMessage("order.completed", {
-                    orderId: order_id,
-                    customerId: order.customer_id,
-                    pointsAwarded: pointsToAward,
-                    timestamp: new Date().toISOString()
-                  });
-                  console.log(`🎁 Puntos por efectivo otorgados desde Kitchen: ${pointsToAward}`);
-                }
+                // Usamos el helper unificado que ya maneja la lógica de moneda y publicación dual
+                await publishOrderCompleted(
+                  order.customer_id,
+                  totalPaid,
+                  order_id,
+                  "cash"
+                );
+                console.log(`🎁 Puntos por efectivo otorgados desde Kitchen para orden ${order_id}`);
               }
             }
           }

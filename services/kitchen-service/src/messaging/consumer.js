@@ -71,8 +71,10 @@ const consumeMessages = async () => {
       try {
         const data = JSON.parse(msg.content.toString());
         const kitchenStatusMap = {
-          pending: "in_preparation",
-          in_preparation: "ready",
+          validated: "pending",
+          pending: "pending",
+          in_preparation: "in_preparation",
+          packing: "packing",
           ready: "ready",
           delivered: "ready",
           cancelled: "cancelled",

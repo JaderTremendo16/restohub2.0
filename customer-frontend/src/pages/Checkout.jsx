@@ -69,115 +69,133 @@ const Checkout = () => {
   }, 0);
   const change = cashAmount ? parseFloat(cashAmount) - total : 0;
 
-  const processOrder = async (paypalData = null) => {
-    if (!user) return alert("Inicia sesión primero");
-    
-    // Si no hay ítems, no procesar
-    if (items.length === 0) {
-        alert("El carrito está vacío");
-        return;
-    }
-    
-    // Evitar doble proceso
-    if (isProcessing) return;
-    setIsProcessing(true);
-
-    try {
-      const locations = locData?.locations || [];
-      const currentLocation = locations.find(loc => 
-        loc.name?.trim().toLowerCase() === user.branch?.trim().toLowerCase()
-      );
-      const branchId = currentLocation ? currentLocation.id : (user.branch || "General");
-
-      // Combinar notas de pago con indicaciones de entrega
-      const finalNotes = `Indicaciones: ${deliveryDescription || 'Ninguna'}. ` + 
-                         (total === 0 ? `Canjeado con puntos de lealtad` : (paypalData ? `Pagado via PayPal (${paypalData.id})` : `Pago en efectivo (Cambio: $${change})`));
-
-      // 1. Crear la orden real para Cocina (orders-service)
-      const { data: orderData } = await createRealOrder({
-        variables: {
-          restaurant_id: branchId,
-          customer_id: user?.id,
-          channel: "web",
-          priority: "normal",
-          notes: finalNotes
+    const handlePayWithPayPal = async (orderID, order_id) => {
+      try {
+        const res = await fetch("/orders-api/capture-paypal-order", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderID, order_id }),
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+          setIsPaid(true);
+          setTimeout(() => navigate('/history'), 2000);
+        } else {
+          throw new Error("Error al capturar el pago");
         }
-      });
-
-      const realOrderId = orderData.createOrder.id;
-
-      // 2. Agregar los items a la orden de cocina
-      await addOrderItems({
-        variables: {
-          order_id: realOrderId,
-          items: items.map(i => {
-            let p = parseFloat(i.price);
-            return {
-              product_id: i.productId,
-              product_name: i.name,
-              quantity: i.quantity,
-              unit_price: p,
-              notes: i.isReward ? "PREMIO CANJEADO" : ""
-            };
-          })
-        }
-      });
-
-      // 3. Generar Factura y Registrar Pago para activar PUNTOS
-      const currencyCfg = getCurrencyConfig(user?.country);
-
-      // 4. Generar Factura
-      await generateInvoice({
-        variables: {
-          order_id: realOrderId,
-          customer_name: user?.name,
-          customer_email: user?.email,
-          customer_document: user?.document || "N/A",
-          notes: deliveryLocation.address,
-          currency: currencyCfg.code
-        }
-      });
-
-      // 5. Registrar Pago
-      await createPayment({
-        variables: {
-          order_id: realOrderId,
-          method: total === 0 ? "reward" : (paypalData ? "paypal" : "cash"),
-          amount: total,
-          currency: currencyCfg.code
-        }
-      });
-
-      // 6. Finalizar la orden en el cliente (vaciar carrito, estado)
-      await completeOrder({
-        variables: {
-          cid: user?.id,
-          items: JSON.stringify(items.map(i => ({ name: i.name, price: i.price, qty: i.quantity }))),
-          total: total,
-          branch: user?.branch || "General",
-          orderId: realOrderId
-        }
-      });
-
-      // 5. Procesar canje de puntos si hay recompensas
-      for (const item of items) {
-        if (item.isReward) {
-          const rewardId = item.productId.replace('reward-', '');
-          await redeemPoints({
-            variables: { cid: user?.id, rid: rewardId }
-          });
-        }
+      } catch (e) {
+        alert("Error PayPal: " + e.message);
       }
+    };
 
-      setIsPaid(true);
-      setTimeout(() => navigate('/history'), 2000);
-    } catch (err) {
-      console.error(err);
-      alert("Error al procesar la orden: " + err.message);
-    } finally {
-      setIsProcessing(false);
-    }
-  };
+    const processOrder = async (paypalData = null) => {
+      if (!user) return alert("Inicia sesión primero");
+      
+      if (items.length === 0) {
+          alert("El carrito está vacío");
+          return;
+      }
+      
+      if (isProcessing) return;
+      setIsProcessing(true);
+
+      try {
+        const locations = locData?.locations || [];
+        // Intentar buscar por nombre o usar el locationId si existe en el usuario
+        const currentLocation = locations.find(loc => 
+          String(loc.id) === String(user.locationId) ||
+          loc.name?.trim().toLowerCase() === user.branch?.trim().toLowerCase()
+        );
+        
+        // IMPORTANTE: Si no se encuentra, usamos el ID 1 o el que tenga el usuario como fallback numérico
+        const branchId = currentLocation ? String(currentLocation.id) : (user.locationId ? String(user.locationId) : "1");
+
+        const finalNotes = `Indicaciones: ${deliveryDescription || 'Ninguna'}. ` + 
+                           (total === 0 ? `Canjeado con puntos de lealtad` : (paypalData ? `Pagado vía PayPal` : `Pagado en efectivo`));
+
+        const { data: orderData } = await createRealOrder({
+          variables: {
+            restaurant_id: branchId,
+            customer_id: user?.id,
+            channel: "web",
+            priority: "normal",
+            notes: finalNotes
+          }
+        });
+
+        const realOrderId = orderData.createOrder.id;
+
+        await addOrderItems({
+          variables: {
+            order_id: realOrderId,
+            items: items.map(i => {
+              let p = parseFloat(i.price);
+              return {
+                product_id: i.productId,
+                product_name: i.name,
+                quantity: i.quantity,
+                unit_price: p,
+                notes: i.isReward ? "PREMIO CANJEADO" : ""
+              };
+            })
+          }
+        });
+
+        const currencyCfg = getCurrencyConfig(user?.country);
+
+        await generateInvoice({
+          variables: {
+            order_id: realOrderId,
+            customer_name: user?.name,
+            customer_email: user?.email,
+            customer_document: user?.document || "N/A",
+            notes: deliveryLocation.address,
+            currency: currencyCfg.code
+          }
+        });
+
+        // Si es PayPal, ahora llamamos a la captura del backend pasándole el ID de la orden REAL
+        if (paypalData && typeof paypalData === 'string') {
+          await handlePayWithPayPal(paypalData, realOrderId);
+        } else {
+          await createPayment({
+            variables: {
+              order_id: realOrderId,
+              method: total === 0 ? "reward" : "cash",
+              amount: total,
+              currency: currencyCfg.code
+            }
+          });
+
+          await completeOrder({
+            variables: {
+              cid: user?.id,
+              items: JSON.stringify(items.map(i => ({ name: i.name, price: i.price, qty: i.quantity }))),
+              total: total,
+              branch: user?.branch || "General",
+              orderId: realOrderId
+            }
+          });
+
+          for (const item of items) {
+            if (item.isReward) {
+              const rewardId = item.productId.replace('reward-', '');
+              await redeemPoints({
+                variables: { cid: user?.id, rid: rewardId }
+              });
+            }
+          }
+
+          setIsPaid(true);
+          setTimeout(() => navigate('/history'), 2000);
+        }
+      } catch (err) {
+        console.error(err);
+        alert("Error al procesar la orden: " + err.message);
+      } finally {
+        setIsProcessing(false);
+      }
+    };
 
   const handleConfirmOrder = () => {
     if (!paymentMethod) {
@@ -395,22 +413,28 @@ const Checkout = () => {
                     <PayPalButtons 
                       fundingSource="paypal"
                       style={{ layout: "vertical", shape: "pill" }}
-                      createOrder={(data, actions) => {
-                        const finalTotal = parseFloat(total).toFixed(2);
-                        console.log("Creando orden PayPal por:", finalTotal);
-                        return actions.order.create({
-                          purchase_units: [{
-                            description: "Pedido RestoHub",
-                            amount: {
-                              value: finalTotal
-                            }
-                          }]
-                        });
+                      createOrder={async () => {
+                        try {
+                          const res = await fetch("/orders-api/create-paypal-order", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              order_id: "web-order-" + Date.now(),
+                              total: total,
+                            }),
+                          });
+                          const paypalOrder = await res.json();
+                          if (paypalOrder.error) throw new Error(paypalOrder.error);
+                          return paypalOrder.id;
+                        } catch (err) {
+                          console.error("Error creating PayPal order:", err);
+                          throw err;
+                        }
                       }}
-                      onApprove={(data, actions) => {
-                        return actions.order.capture().then((details) => {
-                          processOrder(details);
-                        });
+                      onApprove={(data) => {
+                        // Enviamos el orderID (de PayPal) para que el backend lo capture
+                        // y asocie a nuestra orden real que crearemos dentro de processOrder
+                        return processOrder(data.orderID);
                       }}
                       onError={(err) => {
                         console.error("DETALLE ERROR PAYPAL:", err);

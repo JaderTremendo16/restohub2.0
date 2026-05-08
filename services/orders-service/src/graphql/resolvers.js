@@ -1,5 +1,5 @@
 const db = require("../db/knex");
-const { publishMessage } = require("../messaging/publisher");
+const { publishMessage, publishOrderCompleted } = require("../messaging/publisher");
 
 // Divisor de puntos por moneda:
 // - Monedas de miles (COP, CLP, ARS, PYG): dividir entre 1000
@@ -314,11 +314,12 @@ const resolvers = {
             const divisor = getPointsDivisor(currency);
             const points_to_earn = Math.round(totalPaid / divisor);
 
-            await publishMessage("order.completed", {
-              customer_id: order.customer_id,
-              points: points_to_earn,
-              total_amount: totalPaid,
-            }).catch((err) => console.error("Error loyalty cash delivery:", err));
+            await publishOrderCompleted(
+              order.customer_id,
+              totalPaid,
+              id,
+              "cash"
+            ).catch((err) => console.error("Error loyalty cash delivery:", err));
           }
         }
       }
@@ -491,11 +492,12 @@ const resolvers = {
         const divisor = getPointsDivisor(currency || invoice.currency || "USD");
         const points_to_earn = Math.round(totalPaid / divisor);
 
-        await publishMessage("order.completed", {
-          customer_id: order.customer_id,
-          points: points_to_earn,
-          total_amount: totalPaid,
-        }).catch((err) =>
+        await publishOrderCompleted(
+          order.customer_id,
+          totalPaid,
+          order_id,
+          "reward"
+        ).catch((err) =>
           console.error("Error publishing loyalty points:", err),
         );
       }

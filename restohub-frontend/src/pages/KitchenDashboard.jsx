@@ -158,7 +158,7 @@ export default function KitchenDashboard() {
   const readyAll = ordersForMySede.filter((o) => o.status === "ready");
 
   const groupedOrders = {
-    pending: ordersForMySede.filter((o) => o.status === "pending"),
+    pending: ordersForMySede.filter((o) => ["pending", "received", "validated"].includes(o.status)),
     in_preparation: ordersForMySede.filter(
       (o) => o.status === "in_preparation",
     ),

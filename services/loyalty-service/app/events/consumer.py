@@ -3,8 +3,7 @@ import json
 import logging
 import os
 import uuid
-
-import aio_pika
+import aio_pika  # type: ignore
 
 from app.database import SessionLocal
 from app.models import LoyaltyAccount, PointHistory
@@ -55,6 +54,15 @@ def _process_event(data: dict) -> None:
     customer_id: str  = data.get("customer_id", "")
     total_amount: float = float(data.get("total_amount", 0))
     points_override: int = int(data.get("points", 0))
+    payment_method: str = data.get("payment_method", "efectivo")
+
+    # Mapeo amigable
+    method_labels = {
+        "cash": "efectivo",
+        "paypal": "PayPal",
+        "reward": "canje de puntos"
+    }
+    label = method_labels.get(payment_method.lower(), payment_method)
 
     # Prioridad: usar los puntos pre-calculados por orders-service (ya incluyen
     # el divisor de moneda: COP/1000, MXN/20, USD/1, etc.).
@@ -62,7 +70,7 @@ def _process_event(data: dict) -> None:
     points = points_override if points_override > 0 else _calculate_points(total_amount)
 
     if not customer_id:
-        logger.warning("[loyalty consumer] order.completed sin customer_id — ignorando.")
+        logger.warning(f"[loyalty consumer] order.completed sin customer_id — ignorando. Payload recibido: {data}")
         return
 
     if points <= 0:
@@ -102,7 +110,7 @@ def _process_event(data: dict) -> None:
             loyalty_account_id=acc.id,
             action_type="earn",
             points=points,
-            description=f"Pedido completado (+${total_amount:,.0f})",
+            description=f"Pagado por medio de {label}",
         ))
         db.commit()
 
@@ -150,10 +158,7 @@ async def start_consumer() -> None:
             channel = await connection.channel()
             await channel.set_qos(prefetch_count=10)
 
-            # ── 1. Cola directa (orders-service Node.js actual) ───────────
-            direct_queue = await channel.declare_queue("order.completed", durable=True)
-            await direct_queue.consume(_on_order_completed_direct)
-            logger.info("[loyalty consumer] Escuchando cola directa: order.completed")
+            # ── 1. Exchange TOPIC (ÚNICO CANAL para evitar duplicados) ──────
 
             # ── 2. Exchange TOPIC (arquitectura federada futura) ──────────
             exchange = await channel.declare_exchange(

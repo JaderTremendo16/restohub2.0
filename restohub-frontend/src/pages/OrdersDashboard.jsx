@@ -1033,14 +1033,14 @@ function OrderCard({
     >
       <div style={s.cardHeader}>
         <span style={s.orderId}>#{shortId(order.id)}</span>
-        <div style={{ display: "flex", gap: "0.4rem" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "70%" }}>
           {order.notes?.toLowerCase().includes("paypal") && (
             <span
               style={{
                 ...s.badge,
                 background: "#2ecc71",
                 color: "#fff",
-                boxShadow: "0 0 10px rgba(46, 204, 113, 0.3)",
+                boxShadow: "0 2px 8px rgba(46, 204, 113, 0.4)",
               }}
             >
               💰 PAGADO
@@ -1051,6 +1051,7 @@ function OrderCard({
               ...s.badge,
               background: PRIORITY_COLORS[order.priority],
               color: PRIORITY_TEXT[order.priority],
+              border: `1px solid ${PRIORITY_TEXT[order.priority]}22`,
             }}
           >
             {PRIORITY_LABELS[order.priority]}
@@ -1060,6 +1061,7 @@ function OrderCard({
               ...s.badge,
               background: STATUS_COLORS[order.status],
               color: STATUS_TEXT_COLORS[order.status],
+              boxShadow: order.status === "delivered" ? "none" : `0 2px 6px ${STATUS_TEXT_COLORS[order.status]}22`,
             }}
           >
             {STATUS_LABELS[order.status]}
@@ -1716,11 +1718,15 @@ const s = {
   },
   orderId: { fontWeight: "800", color: "#f4511e", fontSize: "1rem" },
   badge: {
-    padding: "0.3rem 0.7rem",
-    borderRadius: "20px",
-    fontSize: "0.7rem",
-    fontWeight: "700",
+    padding: "0.4rem 0.8rem",
+    borderRadius: "12px",
+    fontSize: "0.65rem",
+    fontWeight: "800",
     textTransform: "uppercase",
+    display: "inline-flex",
+    alignItems: "center",
+    gap: "0.3rem",
+    whiteSpace: "nowrap",
   },
   info: {
     margin: "0.4rem 0",
