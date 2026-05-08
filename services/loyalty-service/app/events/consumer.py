@@ -64,10 +64,12 @@ def _process_event(data: dict) -> None:
     }
     label = method_labels.get(payment_method.lower(), payment_method)
 
-    # Prioridad: usar los puntos pre-calculados por orders-service (ya incluyen
-    # el divisor de moneda: COP/1000, MXN/20, USD/1, etc.).
-    # Solo recalcular si no vienen puntos pre-calculados.
-    points = points_override if points_override > 0 else _calculate_points(total_amount)
+    # Prioridad: usar los puntos pre-calculados por orders-service.
+    # Usar 'in' para permitir que 0 sea un valor válido y no dispare el fallback.
+    if "points" in data:
+        points = int(data["points"])
+    else:
+        points = _calculate_points(total_amount)
 
     if not customer_id:
         logger.warning(f"[loyalty consumer] order.completed sin customer_id — ignorando. Payload recibido: {data}")

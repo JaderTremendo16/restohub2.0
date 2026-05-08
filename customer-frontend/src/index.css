@@ -7,28 +7,28 @@
 
 :root {
   /* Light Mode Variables */
-  --bg-main: #f3f4f6;
+  --bg-main: #f8fafc;
   --bg-card: #ffffff;
+  --bg-input: #f1f5f9;
   --bg-nav: #1a1a2e;
-  --text-primary: #1e293b;
+  --text-primary: #0f172a;
   --text-secondary: #64748b;
-  --text-nav: #94a3b8;
+  --border-color: #f1f5f9;
+  --border-soft: #f8fafc;
   --accent: #ea580c;
-  --border-color: #e2e8f0;
-  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 :root.dark {
   /* Dark Mode Variables */
   --bg-main: #0f172a;
   --bg-card: #1e293b;
-  --bg-nav: #1a1a2e;
-  --text-primary: #f1f5f9;
+  --bg-input: #0f172a;
+  --bg-nav: #020617;
+  --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
-  --text-nav: #94a3b8;
-  --accent: #f97316;
   --border-color: #334155;
-  --shadow: 0 10px 15px -3px rgb(0 0 0 / 0.3);
+  --border-soft: #1e293b;
+  --accent: #f97316;
 }
 
 body {
@@ -36,17 +36,19 @@ body {
   color: var(--text-primary);
   transition: background-color 0.3s ease, color 0.3s ease;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Utilities for Theme */
-.theme-card {
-  background-color: var(--bg-card);
-  border: 1px solid var(--border-color);
+/* Inputs dinámicos sin !important agresivo */
+input, select, textarea {
+  background-color: var(--bg-input);
   color: var(--text-primary);
+  border-color: var(--border-color);
 }
 
-.theme-text-secondary {
-  color: var(--text-secondary);
+/* Estilización de la barra de progreso y divisores */
+.custom-divider {
+  border-color: var(--border-color);
 }
 
 /* Custom Scrollbar */
@@ -61,8 +63,4 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--border-color);
   border-radius: 10px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: var(--text-secondary);
 }

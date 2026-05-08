@@ -54,22 +54,21 @@ const publishEvent = async (routingKey, payload) => {
  *  - Cola directa     → loyalty-service (consumidor actual)
  *  - Exchange topic   → cualquier servicio suscrito a `order.completed`
  *
- * Regla de puntos: 1 punto por cada $1.000 del pedido.
- * El loyalty-service calcula los puntos a partir de `total_amount`.
- *
  * @param {string} customerId
  * @param {number} totalAmount  - Total del pedido en pesos
  * @param {string} orderId
  * @param {string} paymentMethod - 'cash', 'paypal', 'reward', etc.
+ * @param {number} points       - (Opcional) Puntos ya calculados
  */
-const publishOrderCompleted = async (customerId, totalAmount, orderId, paymentMethod = 'unknown') => {
+const publishOrderCompleted = async (customerId, totalAmount, orderId, paymentMethod = 'unknown', points = null) => {
   const payload = {
     customer_id: customerId,
     order_id:    orderId,
     total_amount: totalAmount,
     payment_method: paymentMethod,
-    // Precalculado como referencia, pero el consumer usa total_amount
-    points: Math.floor(totalAmount / 1000),
+    // Priorizar los puntos pasados por argumento. 
+    // Si no vienen, se calculan con el divisor por defecto (1000).
+    points: points !== null ? points : Math.floor(totalAmount / 1000),
     timestamp: new Date().toISOString(),
   }
 

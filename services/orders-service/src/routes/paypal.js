@@ -123,19 +123,18 @@ router.post("/capture-paypal-order", async (req, res) => {
             // ✅ Publicar evento de lealtad
             if (order && order.customer_id) {
               try {
-                // Para PayPal: si el valor es pequeño (ej: 15.50 USD), multiplicamos por 1000.
-                // Si es grande (ej: 65000 COP), lo pasamos tal cual.
-                // Esto asegura que 1 USD = 1000 'unidades' = 1 punto, y 1000 COP = 1 punto.
-                const totalForLoyalty = paidAmountUSD < 1000 ? paidAmountUSD * 1000 : paidAmountUSD;
+                // Para PayPal (USD): 1 punto por cada 1 USD
+                const points_to_earn = Math.floor(paidAmountUSD);
                 
-            await publishOrderCompleted(
-              order.customer_id, 
-              totalForLoyalty, 
-              order_id,
-              "paypal"
-            );
+                await publishOrderCompleted(
+                  order.customer_id, 
+                  paidAmountUSD, // Enviamos el monto real en USD
+                  order_id,
+                  "paypal",
+                  points_to_earn
+                );
                 console.log(
-                  `🎯 Loyalty event (PayPal): customer=${order.customer_id} +${Math.floor(totalForLoyalty / 1000)} pts`
+                  `🎯 Loyalty event (PayPal): customer=${order.customer_id} +${points_to_earn} pts`
                 );
               } catch (loyaltyErr) {
                 console.error("⚠️  No se pudo publicar loyalty event:", loyaltyErr.message);

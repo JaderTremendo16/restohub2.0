@@ -14,6 +14,12 @@ import {
   ChevronRight,
   Crown,
   Gift,
+  ShoppingBag,
+  MessageSquare,
+  User,
+  History,
+  Star,
+  MapPin
 } from "lucide-react";
 
 const CustomerHome = () => {
@@ -32,10 +38,6 @@ const CustomerHome = () => {
     fetchPolicy: 'network-only',
   });
 
-  const { data: promoData } = useQuery(GET_PROMOTIONS, {
-    variables: { activeOnly: true, branch: user?.branch },
-  });
-
   const { data: ordersData } = useQuery(GET_ORDERS, {
     variables: { cid: user?.id },
     skip: !user,
@@ -52,49 +54,20 @@ const CustomerHome = () => {
   const points = loyalty?.totalPoints || 0;
   const tier = loyalty?.tier?.toLowerCase() || "bronze";
   const history = historyData?.pointHistory || [];
-  const promos = promoData?.promotions || [];
   const orders = ordersData?.customerOrders || [];
   const ratingsCount = ratingsData?.ratings?.length || 0;
 
   // Tier progress logic
-  let nextTier = "Plata",
-    target = 100,
-    currentBase = 0;
-  if (points >= 1000) {
-    nextTier = "Máximo Nivel";
-    target = points;
-    currentBase = 0;
-  } else if (points >= 500) {
-    nextTier = "Platino";
-    target = 1000;
-    currentBase = 500;
-  } else if (points >= 100) {
-    nextTier = "Oro";
-    target = 500;
-    currentBase = 100;
-  }
+  let nextTier = "Plata", target = 100, currentBase = 0;
+  if (points >= 1000) { nextTier = "Platino+"; target = points; currentBase = 0; }
+  else if (points >= 500) { nextTier = "Platino"; target = 1000; currentBase = 500; }
+  else if (points >= 100) { nextTier = "Oro"; target = 500; currentBase = 100; }
 
-  const progress = Math.min(
-    100,
-    Math.max(5, ((points - currentBase) / (target - currentBase)) * 100),
-  );
+  const progress = Math.min(100, Math.max(5, ((points - currentBase) / (target - currentBase)) * 100));
 
-  const tierColors = {
-    bronze: "from-orange-400 to-orange-700",
-    silver: "from-slate-300 to-slate-500",
-    gold: "from-brand-500 to-brand-700",
-    platinum: "from-brand-900 to-brand-dark",
-  };
-
-  // La actividad reciente viene SOLO del historial de lealtad (loyalty-service)
-  // para evitar mostrar puntos calculados incorrectamente desde el precio crudo.
   const combinedActivity = [
     ...history.map((h, i) => {
-      const cfg = getCurrencyConfig(user?.country);
-      const formattedAmount = h.totalAmount 
-        ? formatPrice(h.totalAmount)
-        : 'Fidelización';
-
+      const formattedAmount = h.totalAmount ? formatPrice(h.totalAmount) : 'Fidelización';
       return {
         id: `h-${i}`,
         type: h.actionType === 'earn' ? 'purchase' : 'loyalty',
@@ -105,165 +78,148 @@ const CustomerHome = () => {
         date: h.createdAt,
       };
     }),
-  ]
-    .sort((a, b) => new Date(b.date) - new Date(a.date))
-    .slice(0, 5);
+  ].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
 
   return (
-    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {/* Header with Welcome */}
-      <div className="flex justify-between items-center bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm">
-        <div>
-          <h1 className="text-4xl font-black text-brand-dark tracking-tight">
+    <div className="space-y-6 pb-20 animate-in fade-in duration-700">
+      
+      {/* HEADER SECTION */}
+      <div className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] border border-[var(--border-color)] shadow-sm flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="flex-1 text-center md:text-left">
+          <h1 className="text-4xl font-black text-[var(--text-primary)] tracking-tight leading-none mb-2">
             Hola, {user?.name?.split(" ")[0] || "Usuario"} 👋
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
-            Sede activa:{" "}
-            <span className="text-brand-600 font-black">
-              {user?.branch || "General"}
-            </span>
-          </p>
+          <div className="flex items-center justify-center md:justify-start gap-2 text-[var(--text-secondary)] font-bold uppercase text-[10px] tracking-widest">
+            <MapPin size={12} className="text-brand-orange" />
+            <span>Sede activa: <span className="text-brand-orange">{user?.branch || "Sede Montería"}</span></span>
+          </div>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-center min-w-[100px]">
-            <div className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">
-              Pedidos
-            </div>
-            <div className="text-xl font-black text-slate-800">
-              {orders.length}
-            </div>
-          </div>
-          <div className="bg-white p-3 rounded-2xl shadow-sm border border-slate-100 text-center min-w-[100px]">
-            <div className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">
-              Reviews
-            </div>
-            <div className="text-xl font-black text-slate-800">
-              {ratingsCount}
-            </div>
-          </div>
+
+        {/* TUS PUNTOS Mini Badge */}
+        <div className="bg-brand-orange p-6 rounded-[2rem] shadow-xl shadow-brand-orange/20 text-white min-w-[160px] relative overflow-hidden group hover:scale-105 transition-transform duration-300">
+           <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 blur-2xl rounded-full translate-x-1/2 -translate-y-1/2"></div>
+           <div className="relative z-10 text-center">
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 block mb-1">Tus Puntos</span>
+              <div className="flex items-baseline justify-center gap-1">
+                 <span className="text-4xl font-black">{points}</span>
+                 <span className="text-xs font-bold opacity-70">pts</span>
+              </div>
+              <div className="mt-2 bg-black/20 rounded-full py-1.5 px-4 text-[9px] font-black uppercase tracking-widest inline-block border border-white/10">
+                 ● {tier}
+              </div>
+           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
-        {/* Tier Card */}
-        <div className={`relative overflow-hidden bg-gradient-to-br ${tierColors[tier]} rounded-[2.5rem] p-10 text-white shadow-2xl shadow-brand-dark/20`}>
-          <div
-            className={`absolute top-0 right-0 w-80 h-80 bg-white opacity-10 blur-3xl`}
-          />
-          <div className="relative z-10 flex flex-col h-full">
-            <div className="flex justify-between items-start mb-10">
-              <div>
-                <span className="text-xs font-black uppercase tracking-[0.3em] text-white/50 mb-2 block">
-                  Puntos Disponibles
-                </span>
-                <div className="flex items-baseline gap-3">
-                  <span className="text-7xl font-black tracking-tighter text-white">
-                    {points}
-                  </span>
-                  <span className="text-xl font-bold text-white/50 italic uppercase">
-                    pts
-                  </span>
-                </div>
-              </div>
-              <div
-                className={`p-4 bg-white/20 backdrop-blur-md rounded-3xl shadow-xl flex items-center justify-center text-white ring-4 ring-white/10`}
-              >
-                <Crown size={32} />
-              </div>
-            </div>
+      {/* QUICK ACTIONS GRID */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] shadow-sm text-center flex flex-col justify-center gap-1">
+          <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1">Pedidos Realizados</span>
+          <span className="text-4xl font-black text-[var(--text-primary)] leading-none">{orders.length}</span>
+          <div className="w-8 h-1.5 bg-[var(--bg-input)] mx-auto mt-4 rounded-full"></div>
+        </div>
 
-            <div className="mt-auto">
-              <div className="flex justify-between items-end mb-4">
-                <div>
-                  <div className="text-xs font-black uppercase tracking-widest text-white/50 mb-1">
-                    Estatus Actual
-                  </div>
-                  <div className="text-2xl font-black uppercase tracking-tight text-white">
-                    {tier}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="text-xs font-black uppercase tracking-widest text-white/50 mb-1">
-                    Objetivo: {nextTier}
-                  </div>
-                  <div className="text-sm font-bold text-white">
-                    {target - points} pts para subir
-                  </div>
-                </div>
-              </div>
-              <div className="h-4 bg-black/10 rounded-full overflow-hidden p-1">
-                <div
-                  className={`h-full bg-white rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(255,255,255,0.5)]`}
-                  style={{ width: `${progress}%` }}
-                />
-              </div>
-            </div>
+        <div className="bg-[var(--bg-card)] p-6 rounded-[2.5rem] border border-[var(--border-color)] shadow-sm text-center flex flex-col justify-center gap-1">
+          <span className="text-[10px] font-black uppercase text-[var(--text-secondary)] tracking-widest mb-1">Reseñas Enviadas</span>
+          <span className="text-4xl font-black text-[var(--text-primary)] leading-none">{ratingsCount}</span>
+          <div className="w-8 h-1.5 bg-[var(--bg-input)] mx-auto mt-4 rounded-full"></div>
+        </div>
+
+        <button 
+          onClick={() => navigate('/menu')}
+          className="bg-brand-orange rounded-[2.5rem] p-6 text-white shadow-lg shadow-brand-orange/30 flex flex-col items-center justify-center gap-3 hover:bg-orange-600 transition-all active:scale-95 group relative overflow-hidden"
+        >
+          <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center group-hover:rotate-6 transition-all duration-300">
+            <ShoppingBag size={28} />
           </div>
+          <span className="text-[12px] font-black uppercase tracking-[0.15em] leading-none">Pide Aquí</span>
+        </button>
+      </div>
+
+      {/* PROGRESS BAR */}
+      <div className="bg-[var(--bg-card)] p-8 rounded-[2rem] border border-[var(--border-color)] shadow-sm">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-4">
+           <span className="text-[10px] font-black text-[var(--text-secondary)] uppercase tracking-widest">Tu Progreso de Nivel</span>
+           <span className="text-[10px] font-black text-brand-orange uppercase tracking-widest bg-orange-50 dark:bg-orange-500/10 px-4 py-1.5 rounded-full">
+            Faltan {target - points} pts para {nextTier}
+          </span>
+        </div>
+        <div className="h-4 w-full bg-[var(--bg-input)] rounded-full overflow-hidden p-1">
+             <div 
+               className="h-full bg-brand-orange rounded-full shadow-[0_0_15px_rgba(255,92,0,0.5)] transition-all duration-1000 ease-out"
+               style={{ width: `${progress}%` }}
+             ></div>
         </div>
       </div>
 
-      {/* Activity Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-10">
-        <div className="lg:col-span-3 space-y-6">
-          <div className="flex items-center justify-between">
-            <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest flex items-center gap-2">
-              <Clock size={16} className="text-brand-600" />
-              Actividad Reciente
-            </h3>
-            <button
-              onClick={() => navigate("/history")}
-              className="text-xs font-bold text-brand-600 hover:underline"
-            >
-              Ver Historial Completo
-            </button>
+      {/* PRIMARY BUTTONS: Perfil y Canjear */}
+      <div className="flex flex-col md:flex-row gap-6 pt-4 w-full">
+        <button 
+          onClick={() => navigate('/rewards')}
+          className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-8 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all group flex items-center justify-center gap-6"
+        >
+          <div className="w-16 h-16 bg-orange-50 dark:bg-orange-500/10 rounded-2xl flex items-center justify-center text-brand-orange group-hover:scale-110 transition-transform">
+             <Gift size={32} />
           </div>
+          <div className="text-left">
+            <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] block">Canjear</span>
+            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Premios y Bonos</span>
+          </div>
+        </button>
 
-          <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
-            <div className="divide-y divide-slate-50">
-              {combinedActivity.length === 0 ? (
-                <div className="p-10 text-center text-slate-400 italic">
-                  No hay actividad reciente.
-                </div>
-              ) : (
-                combinedActivity.map((act) => (
-                  <div
-                    key={act.id}
-                    className="p-5 flex items-center gap-6 hover:bg-slate-50 transition-colors"
-                  >
-                    <div
-                      className={`w-12 h-12 rounded-2xl flex items-center justify-center ${act.type === "purchase" ? "bg-orange-50 text-brand-600" : "bg-brand-50 text-brand-600"}`}
-                    >
-                      {act.type === "purchase" ? (
-                        <Clock size={20} />
-                      ) : (
-                        <Gift size={20} />
-                      )}
+        <button 
+          onClick={() => navigate('/profile')}
+          className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] p-8 rounded-[2.5rem] shadow-sm hover:shadow-md transition-all group flex items-center justify-center gap-6"
+        >
+          <div className="w-16 h-16 bg-blue-50 dark:bg-blue-500/10 rounded-2xl flex items-center justify-center text-blue-500 group-hover:scale-110 transition-transform">
+             <User size={32} />
+          </div>
+          <div className="text-left">
+            <span className="text-[12px] font-black uppercase tracking-[0.2em] text-[var(--text-primary)] block">Mi Perfil</span>
+            <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-widest">Gestionar Cuenta</span>
+          </div>
+        </button>
+      </div>
+
+      {/* RECENT ACTIVITY */}
+      <div className="pt-8 px-2">
+        <div className="flex justify-between items-end mb-6">
+          <h3 className="text-xs font-black uppercase tracking-[0.25em] text-[var(--text-secondary)]">Historial Reciente</h3>
+          <button 
+            onClick={() => navigate('/history')}
+            className="text-[10px] font-black uppercase text-brand-orange hover:underline tracking-widest"
+          >
+            Ver Todo
+          </button>
+        </div>
+
+        <div className="bg-[var(--bg-card)] rounded-[2.5rem] border border-[var(--border-color)] shadow-sm overflow-hidden">
+           {combinedActivity.length === 0 ? (
+             <div className="p-14 text-center text-slate-300 dark:text-slate-600 italic text-sm">Aún no tienes movimientos registrados.</div>
+           ) : (
+             <div className="divide-y divide-[var(--border-color)]">
+               {combinedActivity.map((act) => (
+                 <div key={act.id} className="p-6 flex items-center gap-5 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
+                    <div className="w-14 h-14 bg-orange-50 dark:bg-orange-500/10 rounded-2xl flex items-center justify-center text-brand-orange group-hover:scale-105 transition-transform">
+                       {act.type === 'purchase' ? <ShoppingBag size={24} /> : <Gift size={24} />}
                     </div>
                     <div className="flex-1">
-                      <h5 className="font-bold text-slate-900">{act.title}</h5>
-                      <div className="text-xs text-slate-400 font-medium">
-                        📍 {act.desc} •{" "}
-                        {new Date(act.date).toLocaleDateString()}
-                      </div>
+                       <h4 className="text-base font-black text-[var(--text-primary)] leading-none mb-1.5">{act.title}</h4>
+                       <span className="text-[10px] font-bold text-[var(--text-secondary)] uppercase tracking-wider">{act.desc} • {new Date(act.date).toLocaleDateString()}</span>
                     </div>
-                    <div className="text-right min-w-[80px]">
-                      <div
-                        className={`font-black tracking-tight whitespace-nowrap ${act.points.toString().includes("+") ? "text-emerald-600" : "text-rose-500"}`}
-                      >
-                        {act.points} pts
-                      </div>
-                      <div className="text-[10px] font-black text-slate-300 uppercase tracking-tighter">
-                        {act.value}
-                      </div>
+                    <div className="text-right">
+                       <span className={`text-base font-black block leading-none mb-1.5 ${act.points.toString().includes('+') ? 'text-emerald-500' : 'text-rose-500'}`}>
+                         {act.points} pts
+                       </span>
+                       <span className="text-[9px] font-black text-[var(--text-secondary)] uppercase tracking-tighter">{act.value}</span>
                     </div>
-                    <ChevronRight size={18} className="text-slate-200 ml-4" />
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+                 </div>
+               ))}
+             </div>
+           )}
         </div>
       </div>
+
     </div>
   );
 };

@@ -318,7 +318,8 @@ const resolvers = {
               order.customer_id,
               totalPaid,
               id,
-              "cash"
+              "cash",
+              points_to_earn
             ).catch((err) => console.error("Error loyalty cash delivery:", err));
           }
         }
@@ -496,7 +497,8 @@ const resolvers = {
           order.customer_id,
           totalPaid,
           order_id,
-          "reward"
+          method,
+          points_to_earn
         ).catch((err) =>
           console.error("Error publishing loyalty points:", err),
         );

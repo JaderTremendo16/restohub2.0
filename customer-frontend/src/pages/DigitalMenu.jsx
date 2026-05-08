@@ -21,7 +21,10 @@ import {
   CheckCircle2,
   ShoppingCart,
   Plus,
-  Loader2
+  Loader2,
+  MessageSquare,
+  ChevronDown,
+  MapPin,
 } from "lucide-react";
 import RatingModal from "../components/common/RatingModal";
 
@@ -143,15 +146,17 @@ const DigitalMenu = () => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header */}
-      <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-        <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-            <UtensilsCrossed className="text-brand-600" size={32} />
+      <div className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] shadow-sm border border-[var(--border-color)] flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="animate-in slide-in-from-left-4">
+          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight flex items-center gap-4">
+            <div className="w-10 h-10 bg-brand-orange/10 rounded-xl flex items-center justify-center">
+              <UtensilsCrossed className="text-brand-orange" size={24} />
+            </div>
             Menú Digital
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
+          <p className="text-[var(--text-secondary)] font-medium mt-1">
             Sede activa:{" "}
-            <span className="font-bold text-brand-600">
+            <span className="font-bold text-brand-orange">
               {user?.branch || "General"}
             </span>
           </p>
@@ -168,23 +173,26 @@ const DigitalMenu = () => {
               placeholder="Buscar plato..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-50 rounded-2xl text-sm font-medium outline-none focus:ring-2 ring-brand-500/20 transition-all border border-transparent focus:border-brand-500"
+              className="w-full pl-12 pr-4 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl text-sm font-bold text-[var(--text-primary)] outline-none focus:ring-4 focus:ring-brand-orange/10 focus:border-brand-orange transition-all placeholder:text-slate-400"
             />
           </div>
           
-          <div className="bg-brand-dark px-4 rounded-2xl flex items-center gap-2 text-white shadow-lg shadow-brand-dark/10">
-            <Filter size={16} className="text-slate-500" />
+          <div className="relative group w-full md:w-auto">
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-hover:text-brand-orange transition-colors pointer-events-none">
+              <Filter size={18} />
+            </div>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="bg-transparent text-xs font-black uppercase outline-none py-3"
+              className="w-full md:w-auto pl-11 pr-10 py-3.5 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-2xl text-[var(--text-primary)] font-black uppercase tracking-widest text-[10px] outline-none focus:ring-4 focus:ring-brand-orange/10 focus:border-brand-orange transition-all appearance-none cursor-pointer shadow-sm min-w-[140px]"
             >
               {categories.map((cat) => (
                 <option key={cat} value={cat} className="text-slate-900">
-                  {cat}
+                  {cat.toUpperCase()}
                 </option>
               ))}
             </select>
+            <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
           </div>
         </div>
       </div>
@@ -274,9 +282,10 @@ const DigitalMenu = () => {
                   </button>
                   <button
                     onClick={() => setSelectedDishForRating(dish.name)}
-                    className="p-4 bg-white border-2 border-slate-100 text-amber-400 hover:border-amber-400 hover:bg-amber-50 rounded-2xl transition-all shadow-sm"
+                    className="p-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-brand-600 hover:border-brand-600 hover:text-brand-600 dark:hover:bg-brand-900/20 rounded-2xl transition-all shadow-sm group/rating"
+                    title="Calificar este plato"
                   >
-                    <Star size={20} fill="currentColor" />
+                    <MessageSquare size={20} className="group-hover/rating:scale-110 transition-transform" />
                   </button>
                 </div>
               </div>

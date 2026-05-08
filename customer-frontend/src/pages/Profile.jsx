@@ -148,10 +148,10 @@ const Profile = () => {
     <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-black text-slate-800 tracking-tight">
+          <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
             Mi Perfil
           </h1>
-          <p className="text-slate-500 font-medium mt-1">
+          <p className="text-[var(--text-secondary)] font-medium mt-1">
             Gestiona tu información personal y sede preferida.
           </p>
         </div>
@@ -170,14 +170,14 @@ const Profile = () => {
       >
         {/* Profile Info */}
         <div className="md:col-span-2 space-y-6">
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+          <div className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] border border-[var(--border-color)] shadow-sm space-y-6">
+            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
               <User size={14} /> Información Personal
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 px-1">
+                <label className="text-xs font-bold text-[var(--text-primary)] px-1">
                   Nombre Completo
                 </label>
                 <div className="relative">
@@ -189,13 +189,13 @@ const Profile = () => {
                     name="name"
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-slate-800"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-[var(--text-primary)]"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 px-1">
+                <label className="text-xs font-bold text-[var(--text-primary)] px-1">
                   Email
                 </label>
                 <div className="relative">
@@ -208,13 +208,13 @@ const Profile = () => {
                     type="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-slate-800"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-[var(--text-primary)]"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 px-1">
+                <label className="text-xs font-bold text-[var(--text-primary)] px-1">
                   Teléfono
                 </label>
                 <div className="relative">
@@ -226,13 +226,13 @@ const Profile = () => {
                     name="phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-slate-800"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-[var(--text-primary)]"
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 px-1">
+                <label className="text-xs font-bold text-[var(--text-primary)] px-1">
                   Ciudad
                 </label>
                 <div className="relative">
@@ -244,21 +244,21 @@ const Profile = () => {
                     name="city"
                     value={formData.city}
                     onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-slate-800"
+                    className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-[var(--text-primary)]"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm space-y-6">
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+          <div className="bg-[var(--bg-card)] p-8 rounded-[2.5rem] border border-[var(--border-color)] shadow-sm space-y-6">
+            <h3 className="text-xs font-black uppercase tracking-widest text-[var(--text-secondary)] flex items-center gap-2">
               <MapPin size={14} /> Ubicación y Sede
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 px-1">
+                <label className="text-xs font-bold text-[var(--text-primary)] px-1">
                   País
                 </label>
                 <div className="relative">
@@ -270,7 +270,7 @@ const Profile = () => {
                   name="country"
                   value={formData.country}
                   onChange={handleChange}
-                  className="block w-full pl-11 pr-4 py-3 bg-slate-50 border border-slate-100 rounded-2xl text-slate-700 font-bold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all text-sm"
+                  className="block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] rounded-2xl text-[var(--text-primary)] font-bold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all text-sm"
                 >
                   {countries.map((c) => (
                     <option key={c.code} value={c.name}>
@@ -282,7 +282,7 @@ const Profile = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="text-xs font-bold text-slate-700 px-1">
+                <label className="text-xs font-bold text-[var(--text-primary)] px-1">
                   Sede Preferida
                 </label>
                 <div className="relative">
@@ -314,9 +314,9 @@ const Profile = () => {
                 </div>
               </div>
 
-              <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-50">
+              <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-50 dark:border-slate-700">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-slate-700 px-1">
+                  <label className="text-xs font-bold text-[var(--text-primary)] px-1">
                     Dirección de Entrega
                   </label>
                   <div className="relative">
@@ -328,7 +328,7 @@ const Profile = () => {
                       name="address"
                       value={formData.address}
                       onChange={handleChange}
-                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-slate-800"
+                      className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] rounded-2xl outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all font-bold text-[var(--text-primary)]"
                       placeholder="Calle, Número, Ciudad"
                     />
                   </div>
