@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   GET_STOCKS,
@@ -132,14 +133,14 @@ function ModalNuevoPedido({
           variables: { location_id: locationId },
         },
       ],
-      onError: (e) => alert("Error al crear pedido: " + e.message),
+      onError: (e) => toast.error("Error al crear pedido: " + e.message),
     },
   );
 
   const [addSupplyOrderItem, { loading: loadingItem }] = useMutation(
     ADD_SUPPLY_ORDER_ITEM,
     {
-      onError: (e) => alert("Error al agregar item: " + e.message),
+      onError: (e) => toast.error("Error al agregar item: " + e.message),
     },
   );
 
@@ -184,14 +185,14 @@ function ModalNuevoPedido({
 
   const handleAgregarItem = () => {
     if (!itemForm.ingredient_id || !itemForm.quantity || !itemForm.unit_cost) {
-      alert("Completa ingrediente, cantidad y costo unitario");
+      toast.error("Completa ingrediente, cantidad y costo unitario");
       return;
     }
     if (
       parseFloat(itemForm.quantity) <= 0 ||
       parseFloat(itemForm.unit_cost) <= 0
     ) {
-      alert("La cantidad y el costo deben ser mayores a 0");
+      toast.error("La cantidad y el costo deben ser mayores a 0");
       return;
     }
     if (
@@ -199,7 +200,7 @@ function ModalNuevoPedido({
         (i) => String(i.ingredient_id) === String(itemForm.ingredient_id),
       )
     ) {
-      alert("Ese ingrediente ya está en el pedido");
+      toast.error("Ese ingrediente ya está en el pedido");
       return;
     }
     const ingrediente = ingredientesFiltrados.find(
@@ -224,15 +225,15 @@ function ModalNuevoPedido({
 
   const handleSubmit = async () => {
     if (!form.supplier_id || !form.location_id) {
-      alert("Proveedor es obligatorio");
+      toast.error("Proveedor es obligatorio");
       return;
     }
     if (parseFloat(form.cost_per_unit) < 0) {
-      alert("El costo no puede ser negativo");
+      toast.error("El costo no puede ser negativo");
       return;
     }
     if (items.length === 0) {
-      alert("Agrega al menos un ingrediente al pedido");
+      toast.error("Agrega al menos un ingrediente al pedido");
       return;
     }
 
@@ -789,14 +790,14 @@ function SeccionPedidos({
       },
       { query: GET_STOCKS, variables: { location_id: parseInt(locationId) } },
     ],
-    onError: (e) => alert("Error: " + e.message),
+    onError: (e) => toast.error("Error: " + e.message),
   });
 
   const [cancelOrder] = useMutation(UPDATE_SUPPLY_ORDER, {
     refetchQueries: [
       { query: GET_SUPPLY_ORDERS, variables: { location_id: locationId } },
     ],
-    onError: (e) => alert("Error: " + e.message),
+    onError: (e) => toast.error("Error: " + e.message),
   });
 
   const handleCancel = (id) => {
@@ -1110,7 +1111,7 @@ function SeccionUmbralMinimo({ locationId, ingredients, stocks }) {
           variables: { location_id: locationId },
         },
       ],
-      onError: (e) => alert("Error: " + e.message),
+      onError: (e) => toast.error("Error: " + e.message),
       onCompleted: () =>
         setForm({ ingredient_id: "", min_threshold: "", unit: "kg" }),
     },
@@ -1126,7 +1127,7 @@ function SeccionUmbralMinimo({ locationId, ingredients, stocks }) {
           variables: { location_id: locationId },
         },
       ],
-      onError: (e) => alert("Error: " + e.message),
+      onError: (e) => toast.error("Error: " + e.message),
       onCompleted: () => setEditando(null),
     },
   );
@@ -1136,11 +1137,11 @@ function SeccionUmbralMinimo({ locationId, ingredients, stocks }) {
 
   const handleSubmit = () => {
     if (!form.ingredient_id || !form.min_threshold) {
-      alert("Ingrediente y umbral son obligatorios");
+      toast.error("Ingrediente y umbral son obligatorios");
       return;
     }
     if (parseFloat(form.min_threshold) < 0) {
-      alert("El umbral no puede ser negativo");
+      toast.error("El umbral no puede ser negativo");
       return;
     }
     createConfig({
@@ -1157,7 +1158,7 @@ function SeccionUmbralMinimo({ locationId, ingredients, stocks }) {
 
   const handleGuardarEdicion = () => {
     if (!editando.min_threshold || parseFloat(editando.min_threshold) < 0) {
-      alert("El umbral debe ser mayor a 0");
+      toast.error("El umbral debe ser mayor a 0");
       return;
     }
     updateConfig({

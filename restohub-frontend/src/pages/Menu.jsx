@@ -1,5 +1,6 @@
 import { useAuth } from "../context/AuthContext";
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   GET_DISHES,
@@ -145,7 +146,7 @@ function ModalPlato({
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      alert("Faltan credenciales de Cloudinary en el archivo .env (VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET)");
+      toast.error("Faltan credenciales de Cloudinary en .env");
       return;
     }
 
@@ -163,10 +164,10 @@ function ModalPlato({
       if (result.secure_url) {
         setForm({ ...form, image_url: result.secure_url });
       } else {
-        alert("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
+        toast.error("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
       }
     } catch (error) {
-      alert("Error al subir la imagen: " + error.message);
+      toast.error("Error al subir la imagen: " + error.message);
     } finally {
       setUploadingImage(false);
     }
@@ -178,7 +179,7 @@ function ModalPlato({
       { query: GET_DISHES, variables: { location_id: locationId } },
     ],
     onCompleted: () => onSaved(),
-    onError: (e) => alert("Error al crear plato: " + e.message),
+    onError: (e) => toast.error("Error al crear plato: " + e.message),
   });
 
   const [updateDish, { loading: updating }] = useMutation(UPDATE_DISH, {
@@ -186,7 +187,7 @@ function ModalPlato({
       { query: GET_DISHES, variables: { location_id: locationId } },
     ],
     onCompleted: () => onSaved(),
-    onError: (e) => alert("Error al editar plato: " + e.message),
+    onError: (e) => toast.error("Error al editar plato: " + e.message),
   });
 
   const loading = creating || updating;
@@ -197,7 +198,7 @@ function ModalPlato({
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
-      alert("El nombre es obligatorio");
+      toast.error("El nombre es obligatorio");
       return;
     }
 
@@ -789,7 +790,7 @@ function PanelCostos({ dish, locationId, country, ingData, onClose }) {
       { query: GET_DISHES, variables: { location_id: locationId } },
     ],
     onCompleted: () => setEditando(false),
-    onError: (e) => alert("Error: " + e.message),
+    onError: (e) => toast.error("Error: " + e.message),
   });
 
   const ingredientes = dataIngredientes?.DishIngredients ?? [];

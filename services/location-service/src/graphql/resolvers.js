@@ -136,6 +136,41 @@ module.exports = {
 
       return admin;
     },
+
+    updateAdmin: async (_, { id, input }, { user }) => {
+      if (!user || user.role !== "general_manager") {
+        throw new Error("Acceso denegado");
+      }
+
+      const updateData = {};
+      if (input.firstName) updateData.first_name = input.firstName;
+      if (input.lastName) updateData.last_name = input.lastName;
+      if (input.email) updateData.email = input.email;
+      if (input.locationId !== undefined) updateData.location_id = input.locationId;
+      if (input.password) {
+        updateData.password_hash = await bcrypt.hash(input.password, 10);
+      }
+
+      if (Object.keys(updateData).length > 0) {
+        const [admin] = await db("users")
+          .where({ id })
+          .update(updateData)
+          .returning("*");
+        if (!admin) throw new Error("Administrador no encontrado");
+        return admin;
+      }
+      
+      const admin = await db("users").where({ id }).first();
+      return admin;
+    },
+
+    deleteAdmin: async (_, { id }, { user }) => {
+      if (!user || user.role !== "general_manager") {
+        throw new Error("Acceso denegado");
+      }
+      const deleted = await db("users").where({ id }).del();
+      return deleted > 0;
+    },
   },
   // Mapeo snake_case → camelCase
   Country: {

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   GET_DISHES,
@@ -119,9 +120,9 @@ function ModalNuevoPlato({ onClose, onCreated }) {
         const publicId = filename.split('.')[0];
         
         await deleteCloudinaryImage({ variables: { public_id: publicId } });
-        alert("Imagen borrada de la nube.");
+        toast.success("Imagen borrada de la nube.");
       } catch (e) {
-        alert("Error borrando de la nube: " + e.message);
+        toast.error("Error borrando de la nube: " + e.message);
       }
     }
     
@@ -136,9 +137,7 @@ function ModalNuevoPlato({ onClose, onCreated }) {
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      alert(
-        "Faltan credenciales de Cloudinary en el archivo .env (VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET)",
-      );
+      toast.error("Faltan credenciales de Cloudinary en .env");
       return;
     }
 
@@ -159,13 +158,10 @@ function ModalNuevoPlato({ onClose, onCreated }) {
       if (result.secure_url) {
         setForm({ ...form, image_url: result.secure_url });
       } else {
-        alert(
-          "Error al subir la imagen: " +
-            (result.error?.message || "Desconocido"),
-        );
+        toast.error("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
       }
     } catch (error) {
-      alert("Error al subir la imagen: " + error.message);
+      toast.error("Error al subir la imagen: " + error.message);
     } finally {
       setUploadingImage(false);
     }
@@ -174,12 +170,12 @@ function ModalNuevoPlato({ onClose, onCreated }) {
   const [createDish, { loading }] = useMutation(CREATE_DISH, {
     refetchQueries: [{ query: GET_DISHES }],
     onCompleted: (data) => onCreated(data.createDish),
-    onError: (e) => alert("Error al crear plato: " + e.message),
+    onError: (e) => toast.error("Error al crear plato: " + e.message),
   });
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
-      alert("El nombre es obligatorio");
+      toast.error("El nombre es obligatorio");
       return;
     }
     createDish({ variables: { input: { ...form } } });
@@ -412,9 +408,9 @@ function PanelDetalle({
         const filename = parts[parts.length - 1];
         const publicId = filename.split('.')[0];
         await deleteCloudinaryImage({ variables: { public_id: publicId } });
-        alert("Imagen borrada de la nube.");
+        toast.success("Imagen borrada de la nube.");
       } catch (e) {
-        alert("Error borrando de la nube: " + e.message);
+        toast.error("Error borrando de la nube: " + e.message);
       }
     }
     setEditForm({ ...editForm, image_url: "" });
@@ -428,7 +424,7 @@ function PanelDetalle({
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      alert("Faltan credenciales de Cloudinary en el archivo .env");
+      toast.error("Faltan credenciales de Cloudinary en .env");
       return;
     }
 
@@ -446,10 +442,10 @@ function PanelDetalle({
       if (result.secure_url) {
         setEditForm({ ...editForm, image_url: result.secure_url });
       } else {
-        alert("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
+        toast.error("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
       }
     } catch (error) {
-      alert("Error al subir la imagen: " + error.message);
+      toast.error("Error al subir la imagen: " + error.message);
     } finally {
       setUploadingImage(false);
     }
@@ -510,25 +506,25 @@ function PanelDetalle({
       setEditando(false);
       onUpdated();
     },
-    onError: (e) => alert("Error: " + e.message),
+    onError: (e) => toast.error("Error: " + e.message),
   });
 
   const [deactivateDish] = useMutation(DEACTIVATE_DISH, {
     refetchQueries: [{ query: GET_DISHES }],
     onCompleted: () => onClose(),
-    onError: (e) => alert("Error: " + e.message),
+    onError: (e) => toast.error("Error: " + e.message),
   });
 
   const [activateDish] = useMutation(ACTIVATE_DISH, {
     refetchQueries: [{ query: GET_DISHES }],
     onCompleted: () => onUpdated(),
-    onError: (e) => alert("Error: " + e.message),
+    onError: (e) => toast.error("Error: " + e.message),
   });
 
   const [createIngredient, { loading: loadingCrearIng }] = useMutation(
     CREATE_INGREDIENT,
     {
-      onError: (e) => alert("Error al crear ingrediente: " + e.message),
+      onError: (e) => toast.error("Error al crear ingrediente: " + e.message),
     },
   );
 
@@ -540,7 +536,7 @@ function PanelDetalle({
       ],
       awaitRefetchQueries: true,
       onCompleted: () => refetchIngs(),
-      onError: (e) => alert("Error al asignar ingrediente: " + e.message),
+      onError: (e) => toast.error("Error al asignar ingrediente: " + e.message),
     },
   );
 
@@ -554,7 +550,7 @@ function PanelDetalle({
           valid_from: new Date().toISOString().split("T")[0],
         });
       },
-      onError: (e) => alert("Error: " + e.message),
+      onError: (e) => toast.error("Error: " + e.message),
     },
   );
 
@@ -562,13 +558,13 @@ function PanelDetalle({
     UPDATE_MENU_PRICE,
     {
       onCompleted: () => refetchPrecios(),
-      onError: (e) => alert("Error: " + e.message),
+      onError: (e) => toast.error("Error: " + e.message),
     },
   );
 
   const handleGuardarEdicion = () => {
     if (!editForm.name.trim()) {
-      alert("El nombre es obligatorio");
+      toast.error("El nombre es obligatorio");
       return;
     }
     updateDish({ variables: { id: dish.id, input: { ...editForm } } });
@@ -576,7 +572,7 @@ function PanelDetalle({
 
   const handleAgregarIngrediente = async () => {
     if (!ingForm.nombre.trim() || !ingForm.quantity) {
-      alert("El nombre y la cantidad son obligatorios");
+      toast.error("El nombre y la cantidad son obligatorios");
       return;
     }
 
@@ -624,13 +620,13 @@ function PanelDetalle({
 
       setIngForm({ nombre: "", category: "Otros", quantity: "", unit: "kg" });
     } catch (e) {
-      alert("Error: " + e.message);
+      toast.error("Error: " + e.message);
     }
   };
 
   const handleGuardarPrecio = () => {
     if (!precioForm.price) {
-      alert("El precio es obligatorio");
+      toast.error("El precio es obligatorio");
       return;
     }
 

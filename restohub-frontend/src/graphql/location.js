@@ -174,3 +174,22 @@ export const CREATE_ADMIN = gql`
     }
   }
 `;
+
+export const UPDATE_ADMIN = gql`
+  mutation UpdateAdmin($id: ID!, $input: UpdateAdminInput!) {
+    updateAdmin(id: $id, input: $input) {
+      id
+      firstName
+      lastName
+      email
+      role
+      locationId
+    }
+  }
+`;
+
+export const DELETE_ADMIN = gql`
+  mutation DeleteAdmin($id: ID!) {
+    deleteAdmin(id: $id)
+  }
+`;

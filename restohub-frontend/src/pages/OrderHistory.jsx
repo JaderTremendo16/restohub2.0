@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useQuery } from '@apollo/client/react';
 import { GET_ORDERS } from '../graphql/operations';
 import { useAuth } from '../context/AuthContext';
@@ -20,7 +21,7 @@ const OrderHistory = () => {
       const items = JSON.parse(order.items);
       setSelectedOrder({ ...order, parsedItems: items });
     } catch (e) {
-      alert("No se pudo cargar el detalle del pedido.");
+      toast.error("No se pudo cargar el detalle del pedido.");
     }
   };
 

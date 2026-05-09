@@ -79,6 +79,14 @@ module.exports = gql`
     locationId: ID!
   }
 
+  input UpdateAdminInput {
+    firstName: String
+    lastName: String
+    email: String
+    password: String
+    locationId: ID
+  }
+
   type Mutation {
     login(email: String!, password: String!): AuthPayload!
 
@@ -101,5 +109,7 @@ module.exports = gql`
       longitude: Float
     ): Location!
     createAdmin(input: CreateAdminInput!): User!
+    updateAdmin(id: ID!, input: UpdateAdminInput!): User!
+    deleteAdmin(id: ID!): Boolean!
   }
 `;

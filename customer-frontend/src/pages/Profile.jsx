@@ -8,6 +8,7 @@ import {
   GET_LOCATIONS,
 } from "../graphql/operations";
 import MapPicker from "../components/common/MapPicker";
+import LocationSelector from "../components/common/LocationSelector";
 import {
   User,
   Mail,
@@ -38,14 +39,28 @@ const Profile = () => {
     phone: user?.phone || "",
     country: user?.country || "",
     countryCode: "", // Se llenará en el useEffect o al cambiar
-    city: user?.city || "",
+    city: (user?.city && user.city !== 'Sede') ? user.city : "",
     branch: user?.branch || "",
     address: user?.address || "",
     latitude: user?.latitude || null,
     longitude: user?.longitude || null,
   });
+
+  // Sincronizar formData cuando el contexto del usuario se actualiza externamente (ej. modal LocationSelector)
+  useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        branch: user.branch || prev.branch,
+        country: user.country || prev.country,
+        city: user.city && user.city !== 'Sede' ? user.city : prev.city,
+      }));
+    }
+  }, [user]);
+
   const [suggestedCenter, setSuggestedCenter] = useState([4.6097, -74.0817]);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showLocationSelector, setShowLocationSelector] = useState(false);
 
   const [updateProfile, { loading: updating }] = useMutation(
     UPDATE_PROFILE_MUTATION,
@@ -145,7 +160,15 @@ const Profile = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10">
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10 relative">
+      {/* Selector de Sedes (Modal) */}
+      {showLocationSelector && (
+        <LocationSelector 
+          forceShow={true} 
+          onClose={() => setShowLocationSelector(false)} 
+        />
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-black text-[var(--text-primary)] tracking-tight">
@@ -259,59 +282,21 @@ const Profile = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-[var(--text-primary)] px-1">
-                  País
+                  Tu Sede Preferida
                 </label>
-                <div className="relative">
-                  <Globe
-                    className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"
-                    size={18}
-                  />
-                  <select
-                  name="country"
-                  value={formData.country}
-                  onChange={handleChange}
-                  className="block w-full pl-11 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-[var(--border-color)] rounded-2xl text-[var(--text-primary)] font-bold focus:outline-none focus:ring-4 focus:ring-brand-500/5 focus:border-brand-500 transition-all text-sm"
-                >
-                  {countries.map((c) => (
-                    <option key={c.code} value={c.name}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-[var(--text-primary)] px-1">
-                  Sede Preferida
-                </label>
-                <div className="relative">
+                <div className="relative" onClick={() => setShowLocationSelector(true)}>
                   <Building2
                     className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300"
                     size={18}
                   />
-                  <select
-                    name="branch"
-                    value={formData.branch}
-                    onChange={handleChange}
-                    className="w-full pl-12 pr-4 py-3.5 bg-brand-dark text-white border-none rounded-2xl outline-none focus:ring-4 focus:ring-brand-orange/20 font-bold appearance-none cursor-pointer"
-                  >
-                    <option value="">Selecciona una sede</option>
-                    {locations
-                      .filter((loc) => {
-                        // Buscamos el ID interno del país seleccionado por nombre
-                        const internalCountry = internalCountries.find(
-                          (c) => c.name.toLowerCase() === formData.country.toLowerCase(),
-                        );
-                        return loc.countryId === internalCountry?.id;
-                      })
-                      .map((b) => (
-                        <option key={b.id} value={b.name}>
-                          {b.name}
-                        </option>
-                      ))}
-                  </select>
+                  <div className="w-full pl-12 pr-4 py-3.5 bg-brand-dark text-white border-none rounded-2xl outline-none focus:ring-4 focus:ring-brand-orange/20 font-bold cursor-pointer flex justify-between items-center shadow-lg transition-all hover:bg-slate-800">
+                     <span>{user?.branch || "Selecciona una sede"}</span>
+                     <span className="text-brand-orange text-[10px] uppercase tracking-widest font-black bg-brand-orange/10 px-3 py-1.5 rounded-lg">Cambiar</span>
+                  </div>
                 </div>
+                <p className="text-[10px] text-slate-400 italic px-2 mt-2">
+                  * Haz clic para abrir el mapa interactivo y encontrar la sucursal más cercana.
+                </p>
               </div>
 
               <div className="md:col-span-2 space-y-4 pt-4 border-t border-slate-50 dark:border-slate-700">

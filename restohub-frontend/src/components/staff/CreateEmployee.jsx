@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useQuery } from "@apollo/client/react";
 import { GET_COUNTRIES, GET_LOCATIONS } from "../../graphql/location";
 import { useAuth } from "../../context/AuthContext";
@@ -44,25 +45,25 @@ const CreateEmployee = ({ createEmployee, creating }) => {
   );
   const handleSubmit = async () => {
     if (!name.trim() || !phone.trim() || !email.trim() || !password.trim()) {
-      alert("Todos los campos son obligatorios");
+      toast.error("Todos los campos son obligatorios");
       return;
     }
 
     // Validación de email
     if (!email.includes("@")) {
-      alert("El correo electrónico debe contener un '@'");
+      toast.error("El correo debe contener un '@'");
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      alert("Por favor, ingresa un formato de correo válido (ej: usuario@empresa.com)");
+      toast.error("Ingresa un correo válido (ej: usuario@empresa.com)");
       return;
     }
 
     // Verificamos que tengamos el ID del país antes de enviar
     if (!paisActual?.id) {
-      alert("Error: No se pudo determinar el país de la sede.");
+      toast.error("No se pudo determinar el país de la sede.");
       return;
     }
 
@@ -82,8 +83,9 @@ const CreateEmployee = ({ createEmployee, creating }) => {
       setEmail("");
       setPassword("");
       setRole("cajero");
+      toast.success("Empleado creado exitosamente");
     } catch (e) {
-      alert(e.message);
+      toast.error(e.message);
     }
   };
 

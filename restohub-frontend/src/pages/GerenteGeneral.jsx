@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useQuery, useMutation, useLazyQuery } from "@apollo/client/react";
 import {
   GET_COUNTRIES,
@@ -7,6 +8,8 @@ import {
   CREATE_COUNTRY,
   CREATE_LOCATION,
   CREATE_ADMIN,
+  UPDATE_ADMIN,
+  DELETE_ADMIN,
   LIST_ALL_EXTERNAL_COUNTRIES,
   SEARCH_EXTERNAL_COUNTRY,
 } from "../graphql/location";
@@ -112,13 +115,13 @@ function SeccionPaises({ countries, loadingCountries, refetchCountries }) {
     },
     onError: (e) => {
       console.error("Error detallado al crear país:", e);
-      alert("Error al crear país: " + e.message);
+      toast.error("Error al crear país: " + e.message);
     },
   });
 
   const handleSubmit = () => {
     if (!form.name || !form.currencyCode || !form.timezone) {
-      alert("Todos los campos son obligatorios");
+      toast.error("Todos los campos son obligatorios");
       return;
     }
     createCountry({ variables: { ...form } });
@@ -386,12 +389,12 @@ function SeccionSedes({ countries, locations, loadingLocations }) {
       setForm({ name: "", address: "", countryId: "", latitude: null, longitude: null });
       setExpandido(false);
     },
-    onError: (e) => alert("Error al crear sede: " + e.message),
+    onError: (e) => toast.error("Error al crear sede: " + e.message),
   });
 
   const handleSubmit = () => {
     if (!form.name || !form.address || !form.countryId) {
-      alert("Todos los campos son obligatorios");
+      toast.error("Todos los campos son obligatorios");
       return;
     }
     createLocation({ variables: { ...form, countryId: form.countryId } });
@@ -644,21 +647,15 @@ function SeccionAdmins({ locations }) {
     locationId: "",
   });
   const [expandido, setExpandido] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
 
-  // Traemos los usuarios para mostrar los admins registrados
-  const { data: usersData, loading: loadingUsers } = useQuery(GET_USERS);
+  const {
+    data: usersData,
+    loading: loadingUsers,
+    refetch: refetchUsers,
+  } = useQuery(GET_USERS);
 
-  const admins = usersData?.users?.filter((u) => u.role === "admin") ?? [];
-
-  const nombreSede = (locationId) => {
-    return (
-      locations?.find((l) => String(l.id) === String(locationId))?.name ??
-      `Sede #${locationId}`
-    );
-  };
-
-  const [createAdmin, { loading }] = useMutation(CREATE_ADMIN, {
-    refetchQueries: [{ query: GET_USERS }],
+  const [createAdmin, { loading: creating }] = useMutation(CREATE_ADMIN, {
     onCompleted: () => {
       setForm({
         firstName: "",
@@ -668,32 +665,98 @@ function SeccionAdmins({ locations }) {
         locationId: "",
       });
       setExpandido(false);
+      refetchUsers();
+      toast.success("Administrador creado exitosamente");
     },
-    onError: (e) => alert("Error al crear administrador: " + e.message),
+    onError: (e) => toast.error("Error al crear administrador: " + e.message),
+  });
+
+  const [updateAdmin, { loading: updating }] = useMutation(UPDATE_ADMIN, {
+    onCompleted: () => {
+      setForm({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        locationId: "",
+      });
+      setEditandoId(null);
+      setExpandido(false);
+      refetchUsers();
+      toast.success("Administrador actualizado exitosamente");
+    },
+    onError: (e) => toast.error("Error al actualizar administrador: " + e.message),
+  });
+
+  const [deleteAdmin] = useMutation(DELETE_ADMIN, {
+    onCompleted: () => {
+      refetchUsers();
+      toast.success("Administrador eliminado");
+    },
+    onError: (e) => toast.error("Error al eliminar administrador: " + e.message),
   });
 
   const handleSubmit = () => {
-    if (
-      !form.firstName ||
-      !form.lastName ||
-      !form.email ||
-      !form.password ||
-      !form.locationId
-    ) {
-      alert("Todos los campos son obligatorios");
+    if (!form.firstName.trim() || !form.lastName.trim() || !form.email.trim() || !form.locationId) {
+      toast.error("Todos los campos excepto contraseña son obligatorios");
       return;
     }
-    createAdmin({
-      variables: {
-        input: {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          email: form.email,
-          password: form.password,
-          locationId: form.locationId,
+
+    if (editandoId) {
+      updateAdmin({
+        variables: {
+          id: editandoId,
+          input: { ...form },
         },
-      },
+      });
+    } else {
+      if (!form.password) {
+        toast.error("La contraseña es obligatoria para un nuevo administrador");
+        return;
+      }
+      createAdmin({ variables: { input: { ...form } } });
+    }
+  };
+
+  const handleEdit = (admin) => {
+    setForm({
+      firstName: admin.firstName,
+      lastName: admin.lastName,
+      email: admin.email,
+      password: "", // Contraseña vacía por defecto al editar
+      locationId: admin.locationId || "",
     });
+    setEditandoId(admin.id);
+    setExpandido(true);
+  };
+
+  const handleCancel = () => {
+    setForm({
+      firstName: "",
+      lastName: "",
+      email: "",
+      password: "",
+      locationId: "",
+    });
+    setEditandoId(null);
+    setExpandido(false);
+  };
+
+  const handleDelete = (id) => {
+    if (window.confirm("¿Estás seguro de que deseas eliminar este administrador?")) {
+      deleteAdmin({ variables: { id } });
+    }
+  };
+
+  const admins =
+    usersData?.users?.filter((u) => u.role === "admin") || [];
+  const loading = creating || updating;
+
+  const nombreSede = (locationId) => {
+    return (
+      locations?.find((l) => String(l.id) === String(locationId))?.name ??
+      `Sede #${locationId}`
+    );
   };
 
   return (
@@ -729,7 +792,7 @@ function SeccionAdmins({ locations }) {
             registrado{admins.length !== 1 ? "s" : ""}
           </p>
         </div>
-        <button onClick={() => setExpandido(!expandido)} style={btnPrimario}>
+        <button onClick={expandido ? handleCancel : () => setExpandido(true)} style={btnPrimario}>
           {expandido ? "Cancelar" : "+ Nuevo administrador"}
         </button>
       </div>
@@ -780,7 +843,7 @@ function SeccionAdmins({ locations }) {
             />
           </div>
           <div>
-            <label style={labelStyle}>Contraseña *</label>
+            <label style={labelStyle}>Contraseña {editandoId ? "(Opcional - Déjala en blanco para mantener la actual)" : "*"}</label>
             <input
               type="password"
               value={form.password}
@@ -810,7 +873,7 @@ function SeccionAdmins({ locations }) {
               disabled={loading}
               style={btnPrimario}
             >
-              {loading ? "Creando..." : "Crear administrador"}
+              {loading ? "Guardando..." : (editandoId ? "Actualizar administrador" : "Crear administrador")}
             </button>
           </div>
         </div>
@@ -900,18 +963,50 @@ function SeccionAdmins({ locations }) {
                   </p>
                 </div>
               </div>
-              {/* Sede asignada */}
-              <div
-                style={{
-                  backgroundColor: "#ea580c18",
-                  color: "#ea580c",
-                  padding: "0.3rem 0.75rem",
-                  borderRadius: "9999px",
-                  fontSize: "0.75rem",
-                  fontWeight: "600",
-                }}
-              >
-                🏪 {nombreSede(admin.locationId)}
+              {/* Acciones */}
+              <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                {/* Sede asignada */}
+                <div
+                  style={{
+                    backgroundColor: "#ea580c18",
+                    color: "#ea580c",
+                    padding: "0.3rem 0.75rem",
+                    borderRadius: "9999px",
+                    fontSize: "0.75rem",
+                    fontWeight: "600",
+                  }}
+                >
+                  🏪 {nombreSede(admin.locationId)}
+                </div>
+                
+                <button
+                  onClick={() => handleEdit(admin)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#3b82f6",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    padding: "0.3rem 0.5rem"
+                  }}
+                >
+                  Editar
+                </button>
+                <button
+                  onClick={() => handleDelete(admin.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#ef4444",
+                    cursor: "pointer",
+                    fontSize: "0.875rem",
+                    fontWeight: "600",
+                    padding: "0.3rem 0.5rem"
+                  }}
+                >
+                  Eliminar
+                </button>
               </div>
             </div>
           ))}

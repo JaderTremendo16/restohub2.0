@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { useQuery, useMutation } from '@apollo/client/react';
 import { 
@@ -31,7 +32,7 @@ const LocationSelector = () => {
 
   const handleBranchSelect = async (location) => {
     if (!user?.id) {
-      alert("Error: No se encontró el ID del usuario.");
+      toast.error("No se encontró el ID del usuario.");
       return;
     }
     setLoadingAction(true);
@@ -51,7 +52,7 @@ const LocationSelector = () => {
         updateUser(data.updateUserProfile);
       }
     } catch (error) {
-      alert("Error al guardar ubicación: " + error.message);
+      toast.error("Error al guardar ubicación: " + error.message);
     } finally {
       setLoadingAction(false);
     }

@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { Html5Qrcode } from "html5-qrcode";
 import { useStaff } from "../../hooks/useStaff";
 import { useAuth } from "../../context/AuthContext"; // Necesario para el filtro
@@ -65,11 +66,11 @@ const QRScanner = () => {
                     }`
                   : ""
               }`;
-              alert(msg);
+              toast.success(msg, { duration: 5000 });
             }
           } catch (error) {
             console.error("Error procesando QR:", error);
-            alert("Error al procesar el QR");
+            toast.error("Error al procesar el QR");
           }
         },
       );

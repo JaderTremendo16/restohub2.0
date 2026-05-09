@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   GET_INGREDIENTS,
@@ -45,7 +46,7 @@ function ModalCrearIngrediente({ onClose, onCreated, suppliers, location_id }) {
       onCreated(); // Cierra el modal
     },
     onError: (error) => {
-      alert("Error al crear ingrediente: " + error.message);
+      toast.error("Error al crear ingrediente: " + error.message);
     },
   });
 
@@ -57,11 +58,11 @@ function ModalCrearIngrediente({ onClose, onCreated, suppliers, location_id }) {
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
-      alert("El nombre es obligatorio");
+      toast.error("El nombre es obligatorio");
       return;
     }
     if (!form.unit) {
-      alert("La unidad es obligatoria");
+      toast.error("La unidad es obligatoria");
       return;
     }
     createIngredient({
@@ -259,8 +260,8 @@ function Ingredients() {
       { query: GET_INGREDIENTS, variables: { location_id: locationId } },
     ],
     awaitRefetchQueries: true,
-    onCompleted: () => alert("Ingrediente desactivado"),
-    onError: (e) => alert("Error al desactivar ingrediente: " + e.message),
+    onCompleted: () => toast.success("Ingrediente desactivado"),
+    onError: (e) => toast.error("Error al desactivar ingrediente: " + e.message),
   });
 
   const handleDeactivate = (id, name) => {
@@ -284,8 +285,8 @@ function Ingredients() {
       { query: GET_INGREDIENTS, variables: { location_id: locationId } },
     ],
     awaitRefetchQueries: true,
-    onCompleted: () => alert("Ingrediente activado"),
-    onError: (e) => alert("Error al activar ingrediente: " + e.message),
+    onCompleted: () => toast.success("Ingrediente activado"),
+    onError: (e) => toast.error("Error al activar ingrediente: " + e.message),
   });
 
   const handleActivate = (id) => {
@@ -310,12 +311,12 @@ function Ingredients() {
       onCompleted: () => {
         setEditandoId(null);
         setNuevoCosto("");
-        alert(
+        toast.success(
           "¡Costo y proveedor actualizados!" + 
           (paisActual ? ` para ${paisActual.name}` : "")
         );
       },
-      onError: (e) => alert("Error al actualizar costo: " + e.message),
+      onError: (e) => toast.error("Error al actualizar costo: " + e.message),
     },
   );
 
@@ -331,9 +332,9 @@ function Ingredients() {
       awaitRefetchQueries: true,
       onCompleted: () => {
         setEditandoId(null);
-        alert("¡Datos básicos actualizados!");
+        toast.success("¡Datos básicos actualizados!");
       },
-      onError: (e) => alert("Error al actualizar: " + e.message),
+      onError: (e) => toast.error("Error al actualizar: " + e.message),
     },
   );
 

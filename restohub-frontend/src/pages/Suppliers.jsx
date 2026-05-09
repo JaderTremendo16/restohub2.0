@@ -1,4 +1,5 @@
 import { useState } from "react";
+import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   GET_SUPPLIERS,
@@ -72,7 +73,7 @@ function ModalCrearProveedor({ onClose, onCreated, countryId, countryName }) {
       },
     ],
     onCompleted: () => onCreated(),
-    onError: (error) => alert("Error al crear proveedor: " + error.message),
+    onError: (error) => toast.error("Error al crear proveedor: " + error.message),
   });
 
   const handleChange = (e) => {
@@ -81,7 +82,7 @@ function ModalCrearProveedor({ onClose, onCreated, countryId, countryName }) {
 
   const handleSubmit = () => {
     if (!form.name.trim()) {
-      alert("El nombre es obligatorio");
+      toast.error("El nombre es obligatorio");
       return;
     }
     createSupplier({

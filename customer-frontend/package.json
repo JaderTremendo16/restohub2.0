@@ -19,6 +19,8 @@
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-leaflet": "^5.0.0",
+    "@changey/react-leaflet-markercluster": "^4.0.0-rc1",
+    "leaflet.markercluster": "^1.5.3",
     "react-router-dom": "^7.14.1"
   },
   "devDependencies": {

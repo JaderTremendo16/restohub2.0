@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import toast from "react-hot-toast";
 import { useQuery, useMutation } from "@apollo/client/react";
 import {
   GET_DISHES,
@@ -122,9 +123,9 @@ function DishEditorModal({ dish, onClose, onSaved }) {
         const publicId = filename.split('.')[0];
         
         await deleteCloudinaryImage({ variables: { public_id: publicId } });
-        alert("Imagen borrada de la nube.");
+        toast.success("Imagen borrada de la nube.");
       } catch (e) {
-        alert("Error borrando de la nube: " + e.message);
+        toast.error("Error borrando de la nube: " + e.message);
       }
     }
     
@@ -139,9 +140,7 @@ function DishEditorModal({ dish, onClose, onSaved }) {
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET;
 
     if (!cloudName || !uploadPreset) {
-      alert(
-        "Faltan credenciales de Cloudinary en el archivo .env (VITE_CLOUDINARY_CLOUD_NAME y VITE_CLOUDINARY_UPLOAD_PRESET)",
-      );
+      toast.error("Faltan credenciales de Cloudinary en .env");
       return;
     }
 
@@ -162,13 +161,10 @@ function DishEditorModal({ dish, onClose, onSaved }) {
       if (result.secure_url) {
         setForm({ ...form, image_url: result.secure_url });
       } else {
-        alert(
-          "Error al subir la imagen: " +
-            (result.error?.message || "Desconocido"),
-        );
+        toast.error("Error al subir la imagen: " + (result.error?.message || "Desconocido"));
       }
     } catch (error) {
-      alert("Error al subir la imagen: " + error.message);
+      toast.error("Error al subir la imagen: " + error.message);
     } finally {
       setUploadingImage(false);
     }
@@ -179,12 +175,12 @@ function DishEditorModal({ dish, onClose, onSaved }) {
     {
       refetchQueries: [{ query: GET_DISHES, variables: { onlyGlobal: true } }],
       onCompleted: (data) => onSaved(dish ? data.updateDish : data.createDish),
-      onError: (e) => alert("Error: " + e.message),
+      onError: (e) => toast.error("Error: " + e.message),
     },
   );
 
   const handleSave = () => {
-    if (!form.name.trim()) return alert("El nombre es obligatorio");
+    if (!form.name.trim()) return toast.error("El nombre es obligatorio");
     const input = { ...form, location_id: null }; // Ensure it's global
     if (dish) {
       saveDish({ variables: { id: dish.id, input } });
@@ -452,25 +448,25 @@ function RecipeEditor({ dish, onClose, ingredients, refetchIngredients }) {
   const [addIngredient, { loading: adding }] = useMutation(
     ADD_DISH_INGREDIENT,
     {
-      onError: (e) => alert(e.message),
+      onError: (e) => toast.error(e.message),
     },
   );
 
   const [updateDishIngredient] = useMutation(UPDATE_DISH_INGREDIENT, {
     onCompleted: () => refetchRecipe(),
-    onError: (e) => alert(e.message),
+    onError: (e) => toast.error(e.message),
   });
 
   const [removeIngredient] = useMutation(REMOVE_DISH_INGREDIENT, {
     onCompleted: () => refetchRecipe(),
-    onError: (e) => alert(e.message),
+    onError: (e) => toast.error(e.message),
   });
 
   const [createGlobalIngredient] = useMutation(CREATE_INGREDIENT, {
     refetchQueries: [
       { query: GET_INGREDIENTS, variables: { location_id: null } },
     ],
-    onError: (e) => alert("Error creando ingrediente global: " + e.message),
+    onError: (e) => toast.error("Error creando ingrediente global: " + e.message),
   });
 
   const handleAdd = async () => {
@@ -480,7 +476,7 @@ function RecipeEditor({ dish, onClose, ingredients, refetchIngredients }) {
       parseFloat(ingForm.quantity) <= 0
     ) {
       if (ingForm.quantity && parseFloat(ingForm.quantity) <= 0) {
-        alert("La cantidad debe ser mayor a cero");
+        toast.error("La cantidad debe ser mayor a cero");
       }
       return;
     }
