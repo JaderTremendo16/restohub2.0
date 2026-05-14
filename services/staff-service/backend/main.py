@@ -4,18 +4,22 @@ from sqlalchemy import create_engine, Column, Integer, String, Boolean, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from datetime import datetime, timezone
+import os
 import qrcode
 import io
 import base64
 import bcrypt
 
-# --- CONFIGURACIÓN DE LA BASE DE DATOS (SQLite) ---
-DATABASE_URL = "sqlite:///./restohub.db"
+# --- CONFIGURACIÓN DE LA BASE DE DATOS ---
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./restohub.db")
 
-engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False}
-)
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(DATABASE_URL)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()

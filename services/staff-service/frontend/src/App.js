@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Html5QrcodeScanner } from "html5-qrcode";
 
 function App() {
+    const API_URL = process.env.REACT_APP_API_URL || "http://127.0.0.1:8000";
     const [employees, setEmployees] = useState([]);
     const [activeStaff, setActiveStaff] = useState([]);
     const [workHistory, setWorkHistory] = useState([]);
@@ -12,11 +13,11 @@ function App() {
 
     const fetchData = async () => {
         try {
-            const resEmp = await fetch('http://127.0.0.1:8000/employees');
+            const resEmp = await fetch(`${API_URL}/employees`);
             setEmployees(await resEmp.json());
-            const resActive = await fetch('http://127.0.0.1:8000/attendance/active');
+            const resActive = await fetch(`${API_URL}/attendance/active`);
             setActiveStaff(await resActive.json());
-            const resHistory = await fetch('http://127.0.0.1:8000/history');
+            const resHistory = await fetch(`${API_URL}/history`);
             const histData = await resHistory.json();
             setWorkHistory(Array.isArray(histData) ? histData : []);
         } catch (e) { console.error("Error cargando datos"); }
@@ -30,7 +31,7 @@ function App() {
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return alert("El correo no tiene un formato valido. Ej: nombre@correo.com");
 
         await fetch(
-            `http://127.0.0.1:8000/employees/create?name=${encodeURIComponent(name)}&country=${encodeURIComponent(country)}&phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`,
+            `${API_URL}/employees/create?name=${encodeURIComponent(name)}&country=${encodeURIComponent(country)}&phone=${encodeURIComponent(phone)}&email=${encodeURIComponent(email)}`,
             { method: 'POST' }
         );
         setName('');
@@ -40,7 +41,7 @@ function App() {
     };
 
     const toggleStatus = async (id) => {
-        await fetch(`http://127.0.0.1:8000/employees/toggle/${id}`, { method: 'PUT' });
+        await fetch(`${API_URL}/employees/toggle/${id}`, { method: 'PUT' });
         fetchData();
     };
 
@@ -49,7 +50,7 @@ function App() {
         const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: 250 });
         scanner.render(async (decodedText) => {
             const id = decodedText.split("_").pop();
-            const res = await fetch(`http://127.0.0.1:8000/attendance/scan/${id}`, { method: 'POST' });
+            const res = await fetch(`${API_URL}/attendance/scan/${id}`, { method: 'POST' });
             const result = await res.json();
             alert(result.status + (result.hours ? ` - Horas: ${result.hours}` + (result.overtime > 0 ? ` (${result.overtime}h EXTRAS)` : '') : ""));
             fetchData();

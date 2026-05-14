@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const STAFF_API_URL = "http://staff-api:8000";
+const STAFF_API_URL = process.env.STAFF_API_URL || "http://staff-api:8000";
 
 const resolvers = {
   Query: {
