@@ -3,7 +3,7 @@ import { setContext } from '@apollo/client/link/context';
 import { get } from 'idb-keyval';
 
 const httpLink = createHttpLink({
-  uri: '/graphql',
+  uri: import.meta.env.VITE_GATEWAY_URL || "/graphql",
 });
 
 const authLink = setContext(async (_, { headers }) => {

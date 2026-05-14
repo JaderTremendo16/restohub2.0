@@ -6,7 +6,7 @@ import {
 import { setContext } from "@apollo/client/link/context";
 
 const httpLink = createHttpLink({
-  uri: "/graphql",
+  uri: import.meta.env.VITE_GATEWAY_URL || "/graphql",
 });
 
 // Este "link" intercepta cada petición antes de enviarla
