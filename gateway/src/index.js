@@ -42,19 +42,50 @@ async function start() {
       const gateway = new ApolloGateway({
         supergraphSdl: new IntrospectAndCompose({
           subgraphs: [
+            /* 
             {
               name: "ingredients",
-              url: "http://ingredients-service:4001/graphql",
+              url: process.env.INGREDIENTS_SERVICE_URL || "http://ingredients-service:4001/graphql",
             },
-            { name: "menu", url: "http://menu-service:4002/graphql" },
-            { name: "inventory", url: "http://inventory-service:4003/graphql" },
-            { name: "location", url: "http://location-service:4005/graphql" },
-            { name: "staff", url: "http://staff-subgraph:4006/graphql" },
-            { name: "orders", url: "http://orders-service:3001/graphql" },
-            { name: "kitchen", url: "http://kitchen-service:3002/graphql" },
-            { name: "pos", url: "http://pos-service:3004/graphql" },
-            { name: "customer", url: "http://customer-service:8000/graphql" },
-            { name: "loyalty", url: "http://loyalty-service:8001/graphql" },
+            { 
+              name: "menu", 
+              url: process.env.MENU_SERVICE_URL || "http://menu-service:4002/graphql" 
+            },
+            { 
+              name: "inventory", 
+              url: process.env.INVENTORY_SERVICE_URL || "http://inventory-service:4003/graphql" 
+            },
+            { 
+              name: "location", 
+              url: process.env.LOCATION_SERVICE_URL || "http://location-service:4005/graphql" 
+            },
+            */
+            { 
+              name: "staff", 
+              url: process.env.STAFF_SERVICE_URL || "http://staff-subgraph:4006/graphql" 
+            },
+            /*
+            { 
+              name: "orders", 
+              url: process.env.ORDERS_SERVICE_URL || "http://orders-service:3001/graphql" 
+            },
+            { 
+              name: "kitchen", 
+              url: process.env.KITCHEN_SERVICE_URL || "http://kitchen-service:3002/graphql" 
+            },
+            { 
+              name: "pos", 
+              url: process.env.POS_SERVICE_URL || "http://pos-service:3004/graphql" 
+            },
+            { 
+              name: "customer", 
+              url: process.env.CUSTOMER_SERVICE_URL || "http://customer-service:8000/graphql" 
+            },
+            { 
+              name: "loyalty", 
+              url: process.env.LOYALTY_SERVICE_URL || "http://loyalty-service:8001/graphql" 
+            },
+            */
           ],
         }),
         buildService: ({ url }) => {
