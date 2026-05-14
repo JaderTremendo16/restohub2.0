@@ -36,12 +36,18 @@ function Login() {
 
       if (adminData?.login) {
         const { token, user } = adminData.login;
-        const { data: locs } = await client.query({
-          query: GET_LOCATIONS,
-          fetchPolicy: 'network-only'
-        });
-        const location = locs?.locations?.find(l => parseInt(l.id) === parseInt(user.locationId));
-        const branchName = location ? location.name : "Global";
+        let branchName = "Global";
+        try {
+          const { data: locs } = await client.query({
+            query: GET_LOCATIONS,
+            fetchPolicy: 'network-only'
+          });
+          const location = locs?.locations?.find(l => parseInt(l.id) === parseInt(user.locationId));
+          if (location) branchName = location.name;
+        } catch (e) {
+          console.warn("Error cargando sedes en login admin:", e.message);
+        }
+
         login(user, token, user.locationId, branchName);
         navigate("/");
         return;
@@ -66,12 +72,17 @@ function Login() {
         };
         
         // Resolvemos el nombre de la sede
-        const { data: locs } = await client.query({
-          query: GET_LOCATIONS,
-          fetchPolicy: 'network-only'
-        });
-        const location = locs?.locations?.find(l => parseInt(l.id) === parseInt(staff.location_id));
-        const branchName = location ? location.name : "Global";
+        let branchName = "Global";
+        try {
+          const { data: locs } = await client.query({
+            query: GET_LOCATIONS,
+            fetchPolicy: 'network-only'
+          });
+          const location = locs?.locations?.find(l => parseInt(l.id) === parseInt(staff.location_id));
+          if (location) branchName = location.name;
+        } catch (e) {
+          console.warn("Error cargando sedes en login staff:", e.message);
+        }
 
         login(userData, "staff_token", staff.location_id, branchName);
 
