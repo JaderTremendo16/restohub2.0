@@ -55,11 +55,11 @@ async function start() {
               name: "inventory", 
               url: process.env.INVENTORY_SERVICE_URL || "http://inventory-service:4003/graphql" 
             },
+            */
             { 
               name: "location", 
               url: process.env.LOCATION_SERVICE_URL || "http://location-service:4005/graphql" 
             },
-            */
             { 
               name: "staff", 
               url: process.env.STAFF_SERVICE_URL || "http://staff-subgraph:4006/graphql" 
