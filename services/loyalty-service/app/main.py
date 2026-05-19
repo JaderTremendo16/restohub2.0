@@ -11,6 +11,7 @@ from app.models import Base
 from app.schema import schema
 from app.events.consumer import start_consumer
 from app.seed import seed_initial_data
+from prometheus_fastapi_instrumentator import Instrumentator
 
 logging.basicConfig(
     level=logging.INFO,
@@ -34,6 +35,8 @@ app = FastAPI(
     version="2.0.0",
     lifespan=lifespan,
 )
+
+Instrumentator().instrument(app).expose(app)
 
 app.add_middleware(
     CORSMiddleware,

@@ -6,3 +6,4 @@ alembic==1.13.1
 psycopg2-binary==2.9.9
 aio-pika==9.4.1
 pydantic==2.7.1
+prometheus-fastapi-instrumentator==6.1.0

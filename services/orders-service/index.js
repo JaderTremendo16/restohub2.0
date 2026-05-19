@@ -1,4 +1,6 @@
 const express = require("express");
+const http = require("http");
+const { register, collectDefaultMetrics } = require("prom-client");
 const { ApolloServer } = require("@apollo/server");
 const { expressMiddleware } = require("@apollo/server/express4");
 const { buildSubgraphSchema } = require("@apollo/subgraph");
@@ -14,6 +16,17 @@ const knex = require("knex");
 const knexConfig = require("./knexfile");
 
 const app = express();
+
+collectDefaultMetrics({ labels: { service: "orders-service" } });
+http.createServer(async (req, res) => {
+  if (req.url === "/metrics") {
+    res.setHeader("Content-Type", register.contentType);
+    res.end(await register.metrics());
+  } else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
+}).listen(3011, () => console.log("📊 Servidor de métricas en puerto 3011"));
 const PORT = 3001;
 
 app.use(express.json());

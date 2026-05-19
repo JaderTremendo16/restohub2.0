@@ -1,6 +1,8 @@
 require("dotenv").config();
 
 const express = require("express");
+const http = require("http");
+const { register, collectDefaultMetrics } = require("prom-client");
 const { ApolloServer } = require("apollo-server-express");
 const { buildSubgraphSchema } = require("@apollo/subgraph");
 const jwt = require("jsonwebtoken");
@@ -9,6 +11,17 @@ const typeDefs = require("./graphql/typeDefs");
 const resolvers = require("./graphql/resolvers");
 
 const PORT = process.env.PORT || 4005;
+
+collectDefaultMetrics({ labels: { service: "location-service" } });
+http.createServer(async (req, res) => {
+  if (req.url === "/metrics") {
+    res.setHeader("Content-Type", register.contentType);
+    res.end(await register.metrics());
+  } else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
+}).listen(4015, () => console.log("📊 Servidor de métricas en puerto 4015"));
 const JWT_SECRET = process.env.JWT_SECRET || "restohub_secret_key";
 
 async function main() {

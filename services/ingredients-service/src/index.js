@@ -2,12 +2,24 @@ import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone"; // En la v4 de apollo server usamos startStandaloneServer en lugar de server.listen
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import dotenv from "dotenv";
-
+import http from "http";
+import { register, collectDefaultMetrics } from "prom-client";
 import typeDefs from "./graphql/schema.js";
 import resolvers from "./graphql/resolvers.js";
 import db from "./database/knex.js";
 
 dotenv.config();
+
+collectDefaultMetrics({ labels: { service: "ingredients-service" } });
+http.createServer(async (req, res) => {
+  if (req.url === "/metrics") {
+    res.setHeader("Content-Type", register.contentType);
+    res.end(await register.metrics());
+  } else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
+}).listen(4011, () => console.log("📊 Servidor de métricas en puerto 4011"));
 
 const server = new ApolloServer({
   schema: buildSubgraphSchema({ typeDefs, resolvers }),

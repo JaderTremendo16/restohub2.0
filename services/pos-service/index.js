@@ -1,5 +1,7 @@
 require("dotenv").config();
 const express = require("express");
+const http = require("http");
+const { register, collectDefaultMetrics } = require("prom-client");
 const { ApolloServer } = require("@apollo/server");
 const { expressMiddleware } = require("@apollo/server/express4");
 const { buildSubgraphSchema } = require("@apollo/subgraph");
@@ -14,6 +16,17 @@ const mpRoutes = require("./src/routes/mercadopago");
 const paypalRoutes = require("./src/routes/paypal");
 
 const app = express();
+
+collectDefaultMetrics({ labels: { service: "pos-service" } });
+http.createServer(async (req, res) => {
+  if (req.url === "/metrics") {
+    res.setHeader("Content-Type", register.contentType);
+    res.end(await register.metrics());
+  } else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
+}).listen(3014, () => console.log("📊 Servidor de métricas en puerto 3014"));
 const PORT = process.env.PORT || 3004;
 
 app.use(express.json());

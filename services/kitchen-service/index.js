@@ -1,5 +1,7 @@
 require('dotenv').config()
 const express = require('express')
+const http = require('http')
+const { register, collectDefaultMetrics } = require('prom-client')
 const { ApolloServer } = require('@apollo/server')
 const { expressMiddleware } = require('@apollo/server/express4')
 const { buildSubgraphSchema } = require('@apollo/subgraph')
@@ -11,6 +13,17 @@ const { dailyKitchenJob } = require('./src/jobs/dailykitchen.job')
 const kitchenRoutes = require('./src/routes/kitchen.routes')
 
 const app = express()
+
+collectDefaultMetrics({ labels: { service: 'kitchen-service' } })
+http.createServer(async (req, res) => {
+  if (req.url === '/metrics') {
+    res.setHeader('Content-Type', register.contentType)
+    res.end(await register.metrics())
+  } else {
+    res.writeHead(404)
+    res.end('Not Found')
+  }
+}).listen(3012, () => console.log('📊 Servidor de métricas en puerto 3012'))
 const PORT = process.env.PORT || 3002
 
 app.use(express.json())

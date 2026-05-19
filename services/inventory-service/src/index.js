@@ -3,6 +3,8 @@ import { ApolloServer } from "@apollo/server";
 import { startStandaloneServer } from "@apollo/server/standalone";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import dotenv from "dotenv";
+import http from "http";
+import { register, collectDefaultMetrics } from "prom-client";
 
 import typeDefs from "./graphql/schema.js";
 import resolvers from "./graphql/resolvers.js";
@@ -12,6 +14,17 @@ import { startConsumer } from "./messaging/consumer.js";
 import { startInventoryJobs } from "./jobs/inventoryJobs.js";
 
 dotenv.config();
+
+collectDefaultMetrics({ labels: { service: "inventory-service" } });
+http.createServer(async (req, res) => {
+  if (req.url === "/metrics") {
+    res.setHeader("Content-Type", register.contentType);
+    res.end(await register.metrics());
+  } else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
+}).listen(4013, () => console.log("📊 Servidor de métricas en puerto 4013"));
 
 const server = new ApolloServer({
   schema: buildSubgraphSchema({ typeDefs, resolvers }),
